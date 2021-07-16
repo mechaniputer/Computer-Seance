@@ -8,7 +8,7 @@ void dump_command(const struct command *c);
 enum preposition {
   TO = 0,
   ON,
-  MAX
+  MAX_PREPOSITIONS
 };
 
 struct command {
@@ -16,7 +16,7 @@ struct command {
   char *verb;
   char *direct_object;
   char *indirect_object;
-  char *phrases[MAX];
+  char *phrases[MAX_PREPOSITIONS];
 };
 
 
