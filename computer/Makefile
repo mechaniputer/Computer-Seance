@@ -1,4 +1,4 @@
-EXEC = test_computer
+EXEC = testcomp
 SOURCES = test_computer.cpp computer.cpp
 
 all:

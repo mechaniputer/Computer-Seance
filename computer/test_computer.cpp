@@ -1,30 +1,72 @@
 #include <iostream>
 #include "computer.hpp"
 
-using namespace std;
 
-#define BYTES 1
-#define WORDS 16
-#define REGS 2
-int main() {
-	cout << "Testing machine with " << BYTES << "x" << WORDS << " memory and " << REGS << " registers\n";
+#define BASEBYTES 2
+#define BASEWORDS 16
+#define BASEREGS 1
+
+void test_base_computer(){
+	std::cout << "Testing base computer with " << BASEBYTES << "x" << BASEWORDS << " memory and " << BASEREGS << " registers\n";
 
 	// Initial memory values (TODO load from file)
-	char memcontents[WORDS*BYTES];
-	for (int i=0; i < WORDS*BYTES; i++) {
-		memcontents[i] = char(i);
+	uint8_t memcontents[BASEWORDS*BASEBYTES];
+	for (unsigned i=0; i < BASEWORDS*BASEBYTES; i++) {
+		memcontents[i] = i;
 	}
 
 	// Create computer
-	Computer EPICAC(BYTES, WORDS, REGS, memcontents);
+	Computer test_computer(BASEBYTES, BASEWORDS, BASEREGS, memcontents, BASEWORDS*BASEBYTES);
 
 	// Show and run computer
-	EPICAC.dump();
-	EPICAC.show_regs();
-	while (!EPICAC.step()) {
-		EPICAC.show_regs();
+	test_computer.dumpmem();
+	test_computer.show_regs();
+	while (!test_computer.step()) {
+		test_computer.show_regs();
 	}
-	EPICAC.show_regs();
+	test_computer.show_regs();
+	return;
+}
+
+void test_raq_computer(){
+	std::cout << "Testing Raquette computer\n";
+	uint8_t raq_asm_test[11];
+	raq_asm_test[0] = 0x38; // SEC
+	raq_asm_test[1] = 0xA5; // LDA zero page
+	raq_asm_test[2] = 0x08; // addr 8
+	raq_asm_test[3] = 0x65; // ADC zero page
+	raq_asm_test[4] = 0x09; // addr 9
+	raq_asm_test[5] = 0x85; // STA zero page
+	raq_asm_test[6] = 0x0A; // addr 10
+	raq_asm_test[7] = 0x00; // BRK
+	raq_asm_test[8] = 0xD0; // x
+	raq_asm_test[9] = 0x90; // y
+	raq_asm_test[10] = 0x00; // z
+
+	uint8_t raq_jmp_test[8];
+	raq_jmp_test[0] = 0x4C; // JMP absolute
+	raq_jmp_test[1] = 0x05;
+	raq_jmp_test[2] = 0x00;
+	raq_jmp_test[3] = 0x00;
+	raq_jmp_test[4] = 0x00;
+	raq_jmp_test[5] = 0x4C; // JMP absolute
+	raq_jmp_test[6] = 0x00;
+	raq_jmp_test[7] = 0xF0;
+
+	Raquette raquette(raq_jmp_test, 8);
+	raquette.dumpmem(0x0,8);
+	raquette.show_regs();
+	while (!raquette.step()) {
+		raquette.show_regs();
+	}
+	raquette.show_regs();
+	raquette.dumpmem(0x0,8);
+	return;
+}
+
+int main() {
+//	test_base_computer();
+	test_raq_computer();
 
 	return 0;
 }
