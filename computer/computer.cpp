@@ -210,6 +210,15 @@ std::tuple<int, int> Raquette::aModeHelper(uint8_t thisbyte) {
 	return std::make_tuple(eff_addr, opbytes);
 }
 
+// Sets new value of pc (without increment by 2)
+void Raquette::branchHelper(){
+	if (memory[pc+1]&0b10000000){ // It is negative
+		pc = pc - (((~memory[pc+1])+1) & 0b01111111);
+	}else{ // It is positive
+		pc = pc + (memory[pc+1] & 0b01111111);
+	}
+}
+
 // ISA based on MOS 6502
 // aaabbbcc. The aaa and cc bits determine the opcode, and the bbb bits determine the addressing mode.
 // Instruction format: bits 0-2 and 6-7 determine opcode. bits 3-5 determine addressing mode.
@@ -303,6 +312,7 @@ int Raquette::step() {
 			eff_addr = (tmp << 8) + memory[pc+1];
 			std::cout << "Absolute JMP " << std::hex << eff_addr << std::dec << std::endl;
 			pc = eff_addr;
+			opbytes = 0; // For JMP we just go directly to the address, ignoring PC increment
 			break;
 
 		case uint8_t(0x6C): // JMP (indirect)
@@ -310,23 +320,95 @@ int Raquette::step() {
 			eff_addr = 0;
 			std::cout << "Indirect JMP " << std::hex << eff_addr << std::dec << std::endl;
 			pc = eff_addr;
+			opbytes = 0; // For JMP we just go directly to the address, ignoring PC increment
 			break;
 
-		case uint8_t(0x90): // BCC TODO
+		case uint8_t(0x90): // BCC
+			std::cout << "BCC ";
+			if(flag_c == false){
+				std::cout << "taken\n";
+				branchHelper(); // This changes PC appropriately
+			}else{
+				std::cout << "not taken\n";
+			}
+			opbytes = 2; // Always increment by 2 regardless
 			break;
-		case uint8_t(0xB0): // BCS TODO
+
+		case uint8_t(0xB0): // BCS
+			std::cout << "BCS ";
+			if(flag_c == true){
+				std::cout << "taken\n";
+				branchHelper(); // This changes PC appropriately
+			}else{
+				std::cout << "not taken\n";
+			}
+			opbytes = 2; // Always increment by 2 regardless
 			break;
+
 		case uint8_t(0xF0): // BEQ TODO
+			std::cout << "BEQ ";
+			if(flag_z == true){
+				std::cout << "taken\n";
+				branchHelper(); // This changes PC appropriately
+			}else{
+				std::cout << "not taken\n";
+			}
+			opbytes = 2; // Always increment by 2 regardless
 			break;
-		case uint8_t(0x30): // BMI TODO
+
+		case uint8_t(0x30): // BMI
+			std::cout << "BMI ";
+			if(flag_n == true){
+				std::cout << "taken\n";
+				branchHelper(); // This changes PC appropriately
+			}else{
+				std::cout << "not taken\n";
+			}
+			opbytes = 2; // Always increment by 2 regardless
 			break;
-		case uint8_t(0xD0): // BNE TODO
+
+		case uint8_t(0xD0): // BNE
+			std::cout << "BNE ";
+			if(flag_z == false){
+				std::cout << "taken\n";
+				branchHelper(); // This changes PC appropriately
+			}else{
+				std::cout << "not taken\n";
+			}
+			opbytes = 2; // Always increment by 2 regardless
 			break;
-		case uint8_t(0x10): // BPL TODO
+
+		case uint8_t(0x10): // BPL
+			std::cout << "BPL ";
+			if(flag_n == false){
+				std::cout << "taken\n";
+				branchHelper(); // This changes PC appropriately
+			}else{
+				std::cout << "not taken\n";
+			}
+			opbytes = 2; // Always increment by 2 regardless
 			break;
-		case uint8_t(0x50): // BVC TODO
+
+		case uint8_t(0x50): // BVC
+			std::cout << "BVC ";
+			if(flag_v == false){
+				std::cout << "taken\n";
+				branchHelper(); // This changes PC appropriately
+			}else{
+				std::cout << "not taken\n";
+			}
+			opbytes = 2; // Always increment by 2 regardless
 			break;
-		case uint8_t(0x70): // BVS TODO
+
+		case uint8_t(0x70): // BVS
+			std::cout << "BVS ";
+			if(flag_v == true){
+				std::cout << "taken\n";
+				branchHelper(); // This changes PC appropriately
+			}else{
+				std::cout << "not taken\n";
+			}
+			opbytes = 2; // Always increment by 2 regardless
 			break;
 
 		case uint8_t(0x38): // SEC

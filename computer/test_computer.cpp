@@ -53,7 +53,17 @@ void test_raq_computer(){
 	raq_jmp_test[6] = 0x00;
 	raq_jmp_test[7] = 0xF0;
 
-	Raquette raquette(raq_jmp_test, 8);
+	uint8_t raq_branch_test[8];
+	raq_branch_test[0] = 0x90; // BCC (forwards)
+	raq_branch_test[1] = 0x04;
+	raq_branch_test[2] = 0x00;
+	raq_branch_test[3] = 0x00;
+	raq_branch_test[4] = 0x00;
+	raq_branch_test[5] = 0x00;
+	raq_branch_test[6] = 0x90; // BCC (backwards)
+	raq_branch_test[7] = 0xFA; // decimal -6
+
+	Raquette raquette(raq_branch_test, 8);
 	raquette.dumpmem(0x0,8);
 	raquette.show_regs();
 	while (!raquette.step()) {
