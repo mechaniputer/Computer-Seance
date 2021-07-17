@@ -28,6 +28,35 @@ void test_base_computer(){
 	return;
 }
 
+void test_raq_disp(){
+	std::cout << "Testing Raquette computer display output\n";
+
+	// Displays "RAQUETTE 64" on second row of display
+	// All other positions should display "*"
+	uint8_t raq_test_disp[0xFFFF];
+	for (unsigned i=0x0400; i < 0x07FF; i++) { // Note that this also fills the 8 ignored bytes
+		raq_test_disp[i] = 0xAA; // char '*'
+	}
+	raq_test_disp[0x048E] = 0xD2; // char R
+	raq_test_disp[0x048F] = 0x81; // char A
+	raq_test_disp[0x0490] = 0xD1; // char Q
+	raq_test_disp[0x0491] = 0xD5; // char U
+	raq_test_disp[0x0492] = 0xC5; // char E
+	raq_test_disp[0x0493] = 0xD4; // char T
+	raq_test_disp[0x0494] = 0xD4; // char T
+	raq_test_disp[0x0495] = 0xC5; // char E
+	raq_test_disp[0x0496] = 0xA0; // char sp
+	raq_test_disp[0x0497] = 0xB6; // char 6
+	raq_test_disp[0x0498] = 0xB4; // char 4
+
+	Raquette raquette(raq_test_disp, 0xFFFF);
+
+	raquette.dumpmem(0x0480,40); // second row
+	raquette.show_screen();
+
+	return;
+}
+
 void test_raq_computer(){
 	std::cout << "Testing Raquette computer\n";
 	uint8_t raq_asm_test[11];
@@ -64,6 +93,7 @@ void test_raq_computer(){
 	raq_branch_test[7] = 0xFA; // decimal -6
 
 	Raquette raquette(raq_branch_test, 8);
+
 	raquette.dumpmem(0x0,8);
 	raquette.show_regs();
 	while (!raquette.step()) {
@@ -71,12 +101,14 @@ void test_raq_computer(){
 	}
 	raquette.show_regs();
 	raquette.dumpmem(0x0,8);
+
 	return;
 }
 
 int main() {
 //	test_base_computer();
 	test_raq_computer();
+	test_raq_disp();
 
 	return 0;
 }

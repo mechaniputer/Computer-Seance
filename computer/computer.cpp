@@ -1,6 +1,7 @@
 #include <iostream>
 #include <assert.h>
 #include <tuple>
+#include <ncurses.h>
 #include "computer.hpp"
 
 #define RAQ_MASK_OPC uint8_t(0b11100011)
@@ -477,4 +478,44 @@ void Raquette::show_regs() {
 		<< " V" << flag_v
 		<< " N" << flag_n
 		<< std::endl;
+}
+
+// Emulates Apple ][ text mode behavior
+// The Apple ][ screen mapping was quirky.
+// For example the first row starts at 0400. The next 40 bytes are shown on that row.
+// Then we wrap onto the first row of the middle level of the screen (the 9th row)
+// Then we wrap onto the first row of the third level and after that there are 8 unused bytes
+// Then we repeat for the second rows of each of the three layers, etc.
+#define RAQ_CHAR(x) (charset[x % 0x40])
+void Raquette::show_screen(){
+	// The Apple 2 charset includes the same characters repeated in 4 variations (dark, blinking, etc)
+	// For now we only emulate one variation and map onto it from the other 4 variations using modulo division
+	char charset[0x40] = {
+		'@','A','B','C','D','E','F','G', 'H','I','J','K','L' ,'M','N','O',
+		'P','Q','R','S','T','U','V','W', 'X','Y','Z','[','\\',']','^','_',
+		' ','!','"','#','$','%','&','\'','(',')','*','+',',' ,'-','.','/',
+		'0','1','2','3','4','5','6','7', '8','9',':',';','<' ,'=','>','?'};
+
+	std::cout << "Starting screen...\n";
+	initscr();
+	cbreak(); // One character at a time input
+	noecho(); // Only show what the machine is showing
+	keypad(stdscr, TRUE); // Capture backspace, delete, arrow keys
+	curs_set(0); // Invisible cursor
+	WINDOW * win = newwin(24, 40, 0, 0);
+
+	// We will print the rows in memory-order
+	wmove(win, 0, 0);
+	for(int i=0; i<24; i++){
+		int row = (8*(i%3))+(i/3);
+		int rowaddr = (0x400 + (i*40) + ((i/3)*8));
+		int col = 0;
+		for(int j=0; j<40; j++){
+			mvwaddch(win, row, col++, RAQ_CHAR(memory[rowaddr+j]));
+		}
+	}
+
+	wrefresh(win);
+	wgetch(win);
+	endwin();
 }
