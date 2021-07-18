@@ -63,6 +63,10 @@ void test_raq_disp(){
 // We will have our own FOSS ROM eventually.
 void test_raq_romfile(){
 	std::ifstream infile("A2ROM.BIN", std::ios::binary | std::ios::in);
+	if(!infile){
+		std::cout << "Cannot open ROM file\n";
+		return;
+	}
 	//get length of file
 	infile.seekg(0, std::ios::end);
 	size_t length = infile.tellg();
