@@ -1,4 +1,5 @@
 #include <iostream>
+#include <fstream>
 #include "computer.hpp"
 
 
@@ -25,6 +26,7 @@ void test_base_computer(){
 		test_computer.show_regs();
 	}
 	test_computer.show_regs();
+
 	return;
 }
 
@@ -55,6 +57,57 @@ void test_raq_disp(){
 	raquette.show_screen();
 
 	return;
+}
+
+// This is a temporary debugging test that expects a proprietary ROM that we cannot not include in the repo.
+// We will have our own FOSS ROM eventually.
+void test_raq_romfile(){
+	std::ifstream infile("A2ROM.BIN", std::ios::binary | std::ios::in);
+	//get length of file
+	infile.seekg(0, std::ios::end);
+	size_t length = infile.tellg();
+	infile.seekg(0, std::ios::beg);
+
+	char * buffer = new char[length];
+	std::cout << "length " << length << std::endl;
+	infile.read(buffer, length);
+
+	uint8_t raq_rom_arr[0xFFFF];
+	for (unsigned i=0; i < 0xD000; i++) {
+		raq_rom_arr[i] = 0x00; // Zero low mem
+	}
+	for (unsigned i=0; i < length; i++) {
+		raq_rom_arr[i+0xD000] = buffer[i];
+		std::cout << std::hex << i+0xD000 << std::dec << std::endl;
+	}
+
+	delete [] buffer;
+
+	Raquette raquette(raq_rom_arr, 0xFFFF+1);
+	raquette.show_regs();
+	int numstep = 0;
+
+	raquette.memory[0x0] = 0xDE;
+	raquette.memory[0x1] = 0xAD;
+	raquette.memory[0x2] = 0xBE;
+	raquette.memory[0x3] = 0xEF;
+	raquette.memory[0x5] = 0xC0;
+	raquette.memory[0x6] = 0xFF;
+	raquette.memory[0x7] = 0xEE;
+	raquette.memory[0xC000] = (0x0D | 0b10000000);
+	while (!raquette.step()) {
+		numstep++;
+//		raquette.show_regs();
+//		std::cout << "step " << numstep << std::endl;
+		if(raquette.pc == 0xFD21) raquette.show_screen(); // FD21 is the keyboard loop
+	}
+	numstep++;
+	raquette.show_regs();
+
+	raquette.dumpmem(0x30,8);
+	raquette.dumpmem(0x01F9,8);
+	raquette.show_screen();
+	std::cout << "Ran for " << numstep << " steps\n";
 }
 
 void test_raq_computer(){
@@ -92,11 +145,22 @@ void test_raq_computer(){
 	raq_branch_test[6] = 0x90; // BCC (backwards)
 	raq_branch_test[7] = 0xFA; // decimal -6
 
-	Raquette raquette(raq_branch_test, 8);
+	uint8_t raq_sbc_test[8];
+	raq_sbc_test[0] = 0x38; // SEC
+//	raq_sbc_test[0] = 0x18; // CLC
+	raq_sbc_test[1] = 0xA9; // LDA Immediate
+	raq_sbc_test[2] = 0xd0; // 
+	raq_sbc_test[3] = 0xE9; // SBC Immediate
+	raq_sbc_test[4] = 0x30; //
+	raq_sbc_test[5] = 0x00;
+	raq_sbc_test[6] = 0x00;
+	raq_sbc_test[7] = 0x00;
+
+	Raquette raquette(raq_sbc_test, 8);
 
 	raquette.dumpmem(0x0,8);
 	raquette.show_regs();
-	while (!raquette.step()) {
+	while (!raquette.step(true)) {
 		raquette.show_regs();
 	}
 	raquette.show_regs();
@@ -107,8 +171,9 @@ void test_raq_computer(){
 
 int main() {
 //	test_base_computer();
-	test_raq_computer();
-	test_raq_disp();
+//	test_raq_computer();
+//	test_raq_disp();
+	test_raq_romfile(); // Loads a 12K ROM file into high mem and runs it
 
 	return 0;
 }

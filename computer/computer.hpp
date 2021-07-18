@@ -23,7 +23,7 @@ class Raquette: public Computer {
 	// TODO reset (for resetting regs and pc)
 	std::tuple<int, int> aModeHelper(uint8_t thisbyte);
 	void branchHelper();
-	int step();
+	int step(bool verbose = false);
 	void show_regs();
 	void show_screen();
 };
