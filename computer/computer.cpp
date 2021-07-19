@@ -198,8 +198,11 @@ std::tuple<int, int> Raquette::aModeHelper(uint8_t thisbyte) {
 			break;
 
 		case uint8_t(0b00000000): // 00 (Indirect, X)
-			// TODO The next byte is an address. Prepend it with 00, add the contents of X to it, and get the two-byte address from that memory location.
-			assert(0);
+			// TODO check bounds
+			// The next byte is an address. Prepend it with 00, add the contents of X to it, and get the two-byte address from that memory location.
+			tmp = memory[pc+1] + RAQ_X; // First address
+			tmp2 = memory[tmp+1]; // MSB of second address
+			eff_addr = (tmp2 << 8) + memory[tmp]; // Plus LSB of second address
 			opbytes = 2;
 			break;
 
@@ -315,17 +318,23 @@ int Raquette::step(bool verbose) {
 			break;
 
 		case uint8_t(0xA4): // LDY Zero Page
-			opbytes = 2;
 			// The next byte is an address. Prepend it with 00.
 			eff_addr = memory[pc+1];
 			if(verbose) std::cout << "LDY zero page " << std::hex << eff_addr << std::dec << " pc+=" << opbytes << std::endl;
 			RAQ_Y = memory[eff_addr];
 			flag_z = (RAQ_Y == 0); // Zero flag if zero
 			flag_n = ((RAQ_Y & 0b10000000) != 0); // Negative flag if sign bit set
+			opbytes = 2;
 			break;
 
 		case uint8_t(0xB4): // LDY Zero Page, X
-			assert(0);
+			// The next byte is an address. Prepend it with 0 and add X to it.
+			eff_addr = memory[pc+1] + RAQ_X;
+			if(verbose) std::cout << "LDY zero page " << std::hex << eff_addr << std::dec << " pc+=" << opbytes << std::endl;
+			RAQ_Y = memory[eff_addr];
+			flag_z = (RAQ_Y == 0); // Zero flag if zero
+			flag_n = ((RAQ_Y & 0b10000000) != 0); // Negative flag if sign bit set
+			opbytes = 2;
 			break;
 
 		case uint8_t(0xAC): // LDY Absolute
@@ -442,7 +451,11 @@ int Raquette::step(bool verbose) {
 
 		case uint8_t(0xF6): // INC Zero Page, X
 			if(verbose) std::cout << "INC Zero Page, X\n";
-			return 1;
+			eff_addr = memory[pc+1] + RAQ_X;
+			memory[eff_addr] += 1;
+			flag_z = (memory[eff_addr] == 0); // Zero flag if zero
+			flag_n = ((memory[eff_addr] & 0b10000000) != 0); // Negative flag if sign bit set
+			opbytes = 2;
 			break;
 
 		case uint8_t(0xEE): // INC Absolute
