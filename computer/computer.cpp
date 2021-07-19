@@ -675,11 +675,40 @@ int Raquette::step(bool verbose) {
 			assert(0);
 			break;
 
-		case uint8_t(0x2A): // ROL
-		case uint8_t(0x26): // ROL
-		case uint8_t(0x36): // ROL
-		case uint8_t(0x2E): // ROL
-		case uint8_t(0x3E): // ROL
+		case uint8_t(0x2A): // ROL Accumulator
+			if(verbose) std::cout << "ROL Accumulator\n";
+			opbytes = 1;
+			assert(0);
+			break;
+
+		case uint8_t(0x26): // ROL Zero Page
+			if(verbose) std::cout << "ROL Zero Page\n";
+			eff_addr = memory[pc+1];
+			tmp = (memory[eff_addr]);
+			// Rotate TMP left, carry goes into bit 0, bit 7 becomes new carry flag
+			tmp2 = tmp;
+			tmp <<=1;
+			tmp +=(flag_c ? 1 : 0);
+			flag_c = ((tmp2 & 0b10000000) != 0);
+			memory[eff_addr] = tmp;
+			opbytes = 2;
+			break;
+
+		case uint8_t(0x36): // ROL Zero Page, X
+			if(verbose) std::cout << "ROL Zero Page, X\n";
+			opbytes = 2;
+			assert(0);
+			break;
+
+		case uint8_t(0x2E): // ROL Absolute
+			if(verbose) std::cout << "ROL Absolute\n";
+			opbytes = 3;
+			assert(0);
+			break;
+
+		case uint8_t(0x3E): // ROL Absolute, X
+			if(verbose) std::cout << "ROL Absolute, X\n";
+			opbytes = 3;
 			assert(0);
 			break;
 
