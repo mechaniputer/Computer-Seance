@@ -98,19 +98,24 @@ void test_raq_romfile(){
 	raquette.memory[0x5] = 0xC0;
 	raquette.memory[0x6] = 0xFF;
 	raquette.memory[0x7] = 0xEE;
-	raquette.memory[0xC000] = (0x0D | 0b10000000);
+//	raquette.memory[0xC000] = (0x0D | 0b10000000);
+
 	while (!raquette.step(true)) {
 		numstep++;
 		raquette.show_regs();
 		std::cout << "step " << numstep << std::endl;
 		if(raquette.pc == 0xFD21) raquette.show_screen(); // FD21 is the keyboard loop
-		if(raquette.pc < 0xF800) break;
+		if(raquette.pc < 0xF800){
+			if((numstep % 1000) == 0) raquette.show_screen();
+			raquette.memory[0xC000] = 0x0; // Clear keyboard just in case
+//			std::cin.get();
+		}
 	}
 	numstep++;
 	raquette.show_regs();
 
-	raquette.dumpmem(0x30,8);
-	raquette.dumpmem(0x01F9,8);
+	raquette.dumpmem(raquette.pc,8);
+//	raquette.dumpmem(0x01F9,8);
 	raquette.show_screen();
 	std::cout << "Ran for " << numstep << " steps\n";
 }

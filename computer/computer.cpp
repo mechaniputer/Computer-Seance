@@ -237,6 +237,7 @@ void Raquette::branchHelper(){
 int Raquette::step(bool verbose) {
 	assert(pc >= 0);
 	if (pc >= num_words) {
+		if(verbose) std::cout << "PC out of bounds\n";
 		return 1; // Already out of bounds
 	}
 
@@ -267,7 +268,7 @@ int Raquette::step(bool verbose) {
 		case uint8_t(0xA1):
 		case uint8_t(0xB1):
 			std::tie(eff_addr, opbytes) = aModeHelper(thisbyte);
-			if(verbose) std::cout << "LDA " << eff_addr << " pc+=" << opbytes << std::endl;
+			if(verbose) std::cout << "LDA " << std::hex << eff_addr << std::dec << " pc+=" << opbytes << std::endl;
 			RAQ_ACC = memory[eff_addr];
 			flag_z = (RAQ_ACC == 0); // Zero flag if zero
 			flag_n = ((RAQ_ACC & 0b10000000) != 0); // Negative flag if sign bit set
@@ -449,17 +450,17 @@ int Raquette::step(bool verbose) {
 			break;
 
 		case uint8_t(0xD6): // DEC Zero Page, X
-			std::cout << "DEC Zero Page, X\n";
+			if(verbose) std::cout << "DEC Zero Page, X\n";
 			return 1;
 			break;
 
 		case uint8_t(0xCE): // DEC Absolute
-			std::cout << "DEC AbsoluteX\n";
+			if(verbose) std::cout << "DEC AbsoluteX\n";
 			return 1;
 			break;
 
 		case uint8_t(0xDE): // DEC Absolute, X
-			std::cout << "DEC Absolute, X\n";
+			if(verbose) std::cout << "DEC Absolute, X\n";
 			return 1;
 			break;
 
@@ -527,8 +528,13 @@ int Raquette::step(bool verbose) {
 			break;
 
 		case uint8_t(0x24): // BIT Zero Page
-			std::cout << "BIT Zero Page\n";
-			return 1;
+			if(verbose) std::cout << "BIT Zero Page\n";
+			eff_addr = memory[pc+1];
+			// & with ACC for zero, and map bits of word in memory to flags
+			tmp = RAQ_ACC & memory[eff_addr];
+			flag_z = (tmp == 0); // Zero flag if zero
+			flag_v = ((memory[eff_addr] & 0b01000000) != 0); // bit 6 maps to V
+			flag_n = ((memory[eff_addr] & 0b10000000) != 0); // bit 7 maps to N
 			opbytes = 2;
 			break;
 
@@ -556,7 +562,7 @@ int Raquette::step(bool verbose) {
 			std::tie(eff_addr, opbytes) = aModeHelper(thisbyte);
 			if(verbose) std::cout << "CMP " << std::hex << eff_addr << std::dec << " pc+=" << opbytes << std::endl;
 			tmp = RAQ_ACC - memory[eff_addr];
-			flag_z = (tmp == 0); // Zero flag if zero
+			flag_z = (RAQ_ACC == memory[eff_addr]); // Zero flag if equal
 			flag_n = ((tmp & 0b10000000) != 0); // Negative flag if sign bit set
 			flag_c = (RAQ_ACC >= memory[eff_addr]); // Carry flag
 			break;
@@ -651,9 +657,14 @@ int Raquette::step(bool verbose) {
 			break;
 
 		case uint8_t(0x46): // LSR Zero Page
-			// TODO Implement, and remember status flags
+			eff_addr = memory[pc+1];
+			tmp = memory[eff_addr];
+			flag_c = tmp & 0x1;
+			tmp2 = tmp>>1;
+			memory[eff_addr] = tmp2;
+			flag_z = (memory[eff_addr] == 0x0);
+			flag_n = false;
 			opbytes = 2;
-			assert(0);
 			break;
 
 		case uint8_t(0x56): // LSR Zero Page, X
@@ -770,7 +781,7 @@ int Raquette::step(bool verbose) {
 		case uint8_t(0x81):
 		case uint8_t(0x91):
 			std::tie(eff_addr, opbytes) = aModeHelper(thisbyte);
-			if(verbose) std::cout << "STA " << eff_addr << " pc+=" << opbytes << std::endl;
+			if(verbose) std::cout << "STA " << std::hex << eff_addr << std::dec << " pc+=" << opbytes << std::endl;
 			memory[eff_addr] = RAQ_ACC;
 			break;
 
