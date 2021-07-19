@@ -311,7 +311,14 @@ int Raquette::step(bool verbose) {
 			break;
 
 		case uint8_t(0xBE): // LDX Absolute, Y
-			assert(0);
+			// TODO check bounds
+			opbytes = 3;
+			tmp = memory[pc+2]; // tmp is an unsigned int with room for shifts
+			eff_addr = (tmp << 8) + memory[pc+1] + RAQ_Y;
+			if(verbose) std::cout << "LDX Absolute, Y " << std::hex << eff_addr << std::dec << " pc+=" << opbytes << std::endl;
+			RAQ_X = memory[eff_addr];
+			flag_z = (RAQ_X == 0); // Zero flag if zero
+			flag_n = ((RAQ_X & 0b10000000) != 0); // Negative flag if sign bit set
 			break;
 
 		case uint8_t(0xA0): // LDY Immediate
@@ -886,11 +893,28 @@ int Raquette::step(bool verbose) {
 			opbytes = 1;
 			break;
 
+		case uint8_t(0x08): // PHP
+			if(verbose) std::cout << "PHP" << std::endl;
+			// TODO push processor status
+			//memory[0x100+RAQ_STACK--] = RAQ_ACC;
+			opbytes = 1;
+			assert(0);
+			break;
+
 		case uint8_t(0x68): // PLA
 			if(verbose) std::cout << "PLA" << std::endl;
 			RAQ_STACK += 1;
 			RAQ_ACC = (memory[0x100+RAQ_STACK]);
 			opbytes = 1;
+			break;
+
+		case uint8_t(0x28): // PLP
+			if(verbose) std::cout << "PLP" << std::endl;
+			RAQ_STACK += 1;
+			// TODO pop processor status
+			//RAQ_ACC = (memory[0x100+RAQ_STACK]);
+			opbytes = 1;
+			assert(0);
 			break;
 
 		case uint8_t(0x90): // BCC
@@ -1066,7 +1090,6 @@ void Raquette::show_screen(){
 		' ','!','"','#','$','%','&','\'','(',')','*','+',',' ,'-','.','/',
 		'0','1','2','3','4','5','6','7', '8','9',':',';','<' ,'=','>','?'};
 
-	std::cout << "Starting screen...\n";
 	initscr();
 	cbreak(); // One character at a time input
 	noecho(); // Only show what the machine is showing
@@ -1074,6 +1097,11 @@ void Raquette::show_screen(){
 	curs_set(0); // Invisible cursor
 	WINDOW * win = newwin(24, 40, 0, 0);
 
+	wtimeout(win, 100); // Nonblocking getch
+
+char ch;
+do{
+	// TODO Only print the changes
 	// We will print the rows in memory-order
 	wmove(win, 0, 0);
 	for(int i=0; i<24; i++){
@@ -1084,15 +1112,20 @@ void Raquette::show_screen(){
 			mvwaddch(win, row, col++, RAQ_CHAR(memory[rowaddr+j]));
 		}
 	}
-
 	wrefresh(win);
-	char ch = wgetch(win);
-	endwin();
-	std::cout << "Entered " << std::hex << (int) ch << std::dec << std::endl;
 
-	if(ch == 0xA){ // 0xA is line feed, and 0xD is CR. The Apple 2 expects the latter.
-		memory[0xC000] = 0x0D | 0b10000000;
+	ch = wgetch(win);
+	//std::cout << "Entered " << std::hex << (int) ch << std::dec << std::endl;
+	if(ch != ERR){
+		if(ch == 0xA){ // 0xA is line feed, and 0xD is CR. The Apple 2 expects the latter.
+			memory[0xC000] = 0x0D | 0b10000000;
+		}else{
+			memory[0xC000] = ch | 0b10000000;
+		}
 	}else{
-		memory[0xC000] = ch | 0b10000000;
+		// TODO this patches the key repeat until we have the strobe clear at 0xC010
+		memory[0xC000] &= 0b01111111;
 	}
+}while ((ch != '@') && this->step());
+	endwin();
 }
