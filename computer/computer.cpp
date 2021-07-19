@@ -300,11 +300,17 @@ int Raquette::step(bool verbose) {
 			assert(0);
 			break;
 
-		case uint8_t(0xAE): // Absolute
-			assert(0);
+		case uint8_t(0xAE): // LDX Absolute
+			opbytes = 3;
+			tmp = memory[pc+2]; // tmp is an unsigned int with room for shifts
+			eff_addr = (tmp << 8) + memory[pc+1];
+			if(verbose) std::cout << "LDX Absolute " << std::hex << eff_addr << std::dec << " pc+=" << opbytes << std::endl;
+			RAQ_X = memory[eff_addr];
+			flag_z = (RAQ_X == 0); // Zero flag if zero
+			flag_n = ((RAQ_X & 0b10000000) != 0); // Negative flag if sign bit set
 			break;
 
-		case uint8_t(0xBE): // Absolute, Y
+		case uint8_t(0xBE): // LDX Absolute, Y
 			assert(0);
 			break;
 
@@ -318,27 +324,33 @@ int Raquette::step(bool verbose) {
 			break;
 
 		case uint8_t(0xA4): // LDY Zero Page
+			opbytes = 2;
 			// The next byte is an address. Prepend it with 00.
 			eff_addr = memory[pc+1];
 			if(verbose) std::cout << "LDY zero page " << std::hex << eff_addr << std::dec << " pc+=" << opbytes << std::endl;
 			RAQ_Y = memory[eff_addr];
 			flag_z = (RAQ_Y == 0); // Zero flag if zero
 			flag_n = ((RAQ_Y & 0b10000000) != 0); // Negative flag if sign bit set
-			opbytes = 2;
 			break;
 
 		case uint8_t(0xB4): // LDY Zero Page, X
+			opbytes = 2;
 			// The next byte is an address. Prepend it with 0 and add X to it.
 			eff_addr = memory[pc+1] + RAQ_X;
 			if(verbose) std::cout << "LDY zero page " << std::hex << eff_addr << std::dec << " pc+=" << opbytes << std::endl;
 			RAQ_Y = memory[eff_addr];
 			flag_z = (RAQ_Y == 0); // Zero flag if zero
 			flag_n = ((RAQ_Y & 0b10000000) != 0); // Negative flag if sign bit set
-			opbytes = 2;
 			break;
 
 		case uint8_t(0xAC): // LDY Absolute
-			assert(0);
+			opbytes = 3;
+			tmp = memory[pc+2]; // tmp is an unsigned int with room for shifts
+			eff_addr = (tmp << 8) + memory[pc+1];
+			if(verbose) std::cout << "LDY Absolute " << std::hex << eff_addr << std::dec << " pc+=" << opbytes << std::endl;
+			RAQ_Y = memory[eff_addr];
+			flag_z = (RAQ_Y == 0); // Zero flag if zero
+			flag_n = ((RAQ_Y & 0b10000000) != 0); // Negative flag if sign bit set
 			break;
 
 		case uint8_t(0xBC): // LDY Absolute, X
@@ -615,14 +627,17 @@ int Raquette::step(bool verbose) {
 			break;
 
 		case uint8_t(0xEC): // CPX Absolute
-			std::cout << "CPX Absolute\n";
+			if(verbose) std::cout << "CPX Absolute\n";
 			return 1;
 			opbytes = 3;
 			break;
 
 		case uint8_t(0xC0): // CPY Immediate
-			std::cout << "CPY Immediate\n";
-			return 1;
+			if(verbose) std::cout << "CPY Immediate\n";
+			eff_addr = pc+1;
+			tmp = RAQ_Y - memory[eff_addr];
+			flag_z = (tmp == 0); // Zero flag if zero
+			flag_n = ((tmp & 0b10000000) != 0); // Negative flag if sign bit set
 			opbytes = 2;
 			break;
 
