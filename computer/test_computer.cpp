@@ -63,6 +63,7 @@ void test_raq_disp(){
 // We will have our own FOSS ROM eventually.
 void test_raq_romfile(){
 	std::ifstream infile("A2ROM.BIN", std::ios::binary | std::ios::in);
+//	std::ifstream infile("apple.rom", std::ios::binary | std::ios::in);
 	if(!infile){
 		std::cout << "Cannot open ROM file\n";
 		return;
@@ -100,13 +101,13 @@ void test_raq_romfile(){
 	raquette.memory[0x7] = 0xEE;
 //	raquette.memory[0xC000] = (0x0D | 0b10000000);
 
-	while (!raquette.step(false)) {
+	while (!raquette.step(true)) {
 		numstep++;
-//		raquette.show_regs();
+		raquette.show_regs();
 //		std::cout << "step " << numstep << std::endl;
 		if(raquette.pc == 0xFD21) raquette.show_screen(); // FD21 is the keyboard loop
 		if(raquette.pc < 0xF800){
-			if((numstep % 1000) == 0) raquette.show_screen();
+//			if((numstep % 1000) == 0) raquette.show_screen();
 			raquette.memory[0xC000] = 0x0; // Clear keyboard just in case
 //			std::cin.get();
 		}
@@ -166,7 +167,20 @@ void test_raq_computer(){
 	raq_sbc_test[6] = 0x00;
 	raq_sbc_test[7] = 0x00;
 
-	Raquette raquette(raq_sbc_test, 8);
+	uint8_t raq_shift_test[10];
+	raq_shift_test[0] = 0xA9; // LDA Immediate
+	raq_shift_test[1] = 0xFF;
+	raq_shift_test[2] = 0x0A;
+	raq_shift_test[3] = 0x0A;
+	raq_shift_test[4] = 0x0A;
+	raq_shift_test[5] = 0x0A;
+	raq_shift_test[6] = 0x0A;
+	raq_shift_test[7] = 0x0A;
+	raq_shift_test[8] = 0x0A;
+	raq_shift_test[9] = 0x0A;
+
+
+	Raquette raquette(raq_shift_test, 10);
 
 	raquette.dumpmem(0x0,8);
 	raquette.show_regs();
