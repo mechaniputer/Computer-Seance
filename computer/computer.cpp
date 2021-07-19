@@ -376,6 +376,14 @@ int Raquette::step(bool verbose) {
 			assert(0);
 			break;
 
+		case uint8_t(0xAA): // TAX
+			if(verbose) std::cout << "TAY\n";
+			RAQ_X = RAQ_ACC;
+			flag_z = (RAQ_X == 0);
+			flag_n = ((RAQ_X & 0b10000000) != 0); // Negative flag if sign bit set
+			opbytes = 1;
+			break;
+
 		case uint8_t(0xA8): // TAY
 			if(verbose) std::cout << "TAY\n";
 			RAQ_Y = RAQ_ACC;
@@ -399,6 +407,13 @@ int Raquette::step(bool verbose) {
 			flag_n = ((RAQ_ACC & 0b10000000) != 0); // Negative flag if sign bit set
 			opbytes = 1;
 			break;
+
+		case uint8_t(0x9A): // TXS
+			if(verbose) std::cout << "TXS\n";
+			RAQ_STACK = RAQ_X;
+			opbytes = 1;
+			break;
+
 
 		case uint8_t(0xCA): // DEX
 			if(verbose) std::cout << "DEX\n";
@@ -688,8 +703,14 @@ int Raquette::step(bool verbose) {
 
 		case uint8_t(0x2A): // ROL Accumulator
 			if(verbose) std::cout << "ROL Accumulator\n";
+			tmp = RAQ_ACC;
+			// Rotate TMP left, carry goes into bit 0, bit 7 becomes new carry flag
+			tmp2 = tmp;
+			tmp <<=1;
+			tmp +=(flag_c ? 1 : 0);
+			flag_c = ((tmp2 & 0b10000000) != 0);
+			RAQ_ACC = tmp;
 			opbytes = 1;
-			assert(0);
 			break;
 
 		case uint8_t(0x26): // ROL Zero Page
