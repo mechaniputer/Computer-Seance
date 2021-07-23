@@ -236,6 +236,20 @@ std::tuple<int, int> Raquette::aModeHelper(uint8_t thisbyte) {
 	return std::make_tuple(eff_addr, opbytes);
 }
 
+// Performs common steps of ROL instructions
+// TODO bounds checks
+uint8_t Raquette::rolHelper(uint8_t byte) {
+	unsigned tmp, tmp2; // For intermediate values below
+	tmp = byte;
+	// Rotate TMP left, carry goes into bit 0, bit 7 becomes new carry flag
+	tmp2 = tmp;
+	tmp <<=1;
+	tmp +=(flag_c ? 0x1 : 0x0);
+	flag_c = ((tmp2 & 0b10000000) != 0);
+	flag_n = ((tmp & 0b10000000) != 0);
+	return tmp;
+}
+
 // Sets new value of pc (without increment by 2)
 void Raquette::branchHelper(){
 	if (memory[pc+1]&0b10000000){ // It is negative
@@ -779,47 +793,39 @@ int Raquette::step(bool verbose) {
 
 		case uint8_t(0x2A): // ROL Accumulator
 			if(verbose) std::cout << "ROL Accumulator\n";
-			tmp = RAQ_ACC;
-			// Rotate TMP left, carry goes into bit 0, bit 7 becomes new carry flag
-			tmp2 = tmp;
-			tmp <<=1;
-			tmp += (flag_c ? 0x1 : 0x0);
-			flag_c = ((tmp2 & 0b10000000) != 0);
-			flag_n = ((tmp & 0b10000000) != 0);
-			RAQ_ACC = tmp;
+			RAQ_ACC = rolHelper(RAQ_ACC);
 			opbytes = 1;
 			break;
 
 		case uint8_t(0x26): // ROL Zero Page
 			if(verbose) std::cout << "ROL Zero Page\n";
 			eff_addr = memory[pc+1];
-			tmp = (memory[eff_addr]);
-			// Rotate TMP left, carry goes into bit 0, bit 7 becomes new carry flag
-			tmp2 = tmp;
-			tmp <<=1;
-			tmp +=(flag_c ? 0x1 : 0x0);
-			flag_c = ((tmp2 & 0b10000000) != 0);
-			flag_n = ((tmp & 0b10000000) != 0);
-			memory[eff_addr] = tmp;
+			memory[eff_addr] = rolHelper(memory[eff_addr]);
 			opbytes = 2;
 			break;
 
 		case uint8_t(0x36): // ROL Zero Page, X
 			if(verbose) std::cout << "ROL Zero Page, X\n";
+			eff_addr = ((memory[pc+1] + RAQ_X) % 0xFF);
+			memory[eff_addr] = rolHelper(memory[eff_addr]);
 			opbytes = 2;
-			assert(0);
 			break;
 
 		case uint8_t(0x2E): // ROL Absolute
 			if(verbose) std::cout << "ROL Absolute\n";
+			tmp = memory[pc+2]; // tmp is an unsigned int with room for shifts
+			eff_addr = (tmp << 8) + memory[pc+1];
+			assert(eff_addr <= 0xFFFF);
+			memory[eff_addr] = rolHelper(memory[eff_addr]);
 			opbytes = 3;
-			assert(0);
 			break;
 
 		case uint8_t(0x3E): // ROL Absolute, X
 			if(verbose) std::cout << "ROL Absolute, X\n";
+			tmp = memory[pc+2]; // tmp is an unsigned int with room for shifts
+			eff_addr = (tmp << 8) + memory[pc+1] + RAQ_X;
+			assert(eff_addr <= 0xFFFF);
 			opbytes = 3;
-			assert(0);
 			break;
 
 		case uint8_t(0x29): // AND
