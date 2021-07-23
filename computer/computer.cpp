@@ -250,6 +250,20 @@ uint8_t Raquette::rolHelper(uint8_t byte) {
 	return tmp;
 }
 
+// Performs common steps of ROR instructions
+// TODO bounds checks
+uint8_t Raquette::rorHelper(uint8_t byte) {
+	unsigned tmp, tmp2; // For intermediate values below
+	tmp = byte;
+	// Rotate TMP right, carry goes into bit 7, bit 0 becomes new carry flag
+	tmp2 = tmp;
+	tmp >>=1;
+	tmp +=(flag_c ? 0x10000000 : 0x0);
+	flag_c = ((tmp2 & 0b00000001) != 0);
+	flag_n = ((tmp & 0b10000000) != 0);
+	return tmp;
+}
+
 // Sets new value of pc (without increment by 2)
 void Raquette::branchHelper(){
 	if (memory[pc+1]&0b10000000){ // It is negative
@@ -822,6 +836,43 @@ int Raquette::step(bool verbose) {
 
 		case uint8_t(0x3E): // ROL Absolute, X
 			if(verbose) std::cout << "ROL Absolute, X\n";
+			tmp = memory[pc+2]; // tmp is an unsigned int with room for shifts
+			eff_addr = (tmp << 8) + memory[pc+1] + RAQ_X;
+			assert(eff_addr <= 0xFFFF);
+			opbytes = 3;
+			break;
+
+		case uint8_t(0x6A): // ROR Accumulator
+			if(verbose) std::cout << "ROR Accumulator\n";
+			RAQ_ACC = rolHelper(RAQ_ACC);
+			opbytes = 1;
+			break;
+
+		case uint8_t(0x66): // ROR Zero Page
+			if(verbose) std::cout << "ROR Zero Page\n";
+			eff_addr = memory[pc+1];
+			memory[eff_addr] = rolHelper(memory[eff_addr]);
+			opbytes = 2;
+			break;
+
+		case uint8_t(0x76): // ROR Zero Page, X
+			if(verbose) std::cout << "ROR Zero Page, X\n";
+			eff_addr = ((memory[pc+1] + RAQ_X) % 0xFF);
+			memory[eff_addr] = rolHelper(memory[eff_addr]);
+			opbytes = 2;
+			break;
+
+		case uint8_t(0x6E): // ROR Absolute
+			if(verbose) std::cout << "ROR Absolute\n";
+			tmp = memory[pc+2]; // tmp is an unsigned int with room for shifts
+			eff_addr = (tmp << 8) + memory[pc+1];
+			assert(eff_addr <= 0xFFFF);
+			memory[eff_addr] = rolHelper(memory[eff_addr]);
+			opbytes = 3;
+			break;
+
+		case uint8_t(0x7E): // ROR Absolute, X
+			if(verbose) std::cout << "ROR Absolute, X\n";
 			tmp = memory[pc+2]; // tmp is an unsigned int with room for shifts
 			eff_addr = (tmp << 8) + memory[pc+1] + RAQ_X;
 			assert(eff_addr <= 0xFFFF);
