@@ -648,6 +648,7 @@ int Raquette::step(bool verbose) {
 			tmp = RAQ_X - memory[eff_addr];
 			flag_z = (tmp == 0); // Zero flag if zero
 			flag_n = ((tmp & 0b10000000) != 0); // Negative flag if sign bit set
+			flag_c = (RAQ_X >= memory[eff_addr]); // Carry flag
 			opbytes = 2;
 			break;
 
@@ -673,6 +674,7 @@ int Raquette::step(bool verbose) {
 			tmp = RAQ_Y - memory[eff_addr];
 			flag_z = (tmp == 0); // Zero flag if zero
 			flag_n = ((tmp & 0b10000000) != 0); // Negative flag if sign bit set
+			flag_c = (RAQ_Y >= memory[eff_addr]); // Carry flag
 			opbytes = 2;
 			break;
 
