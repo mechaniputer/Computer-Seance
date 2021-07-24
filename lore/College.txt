@@ -1,0 +1,89 @@
+***************
+* The College *
+***************
+
+<name TBD> College is a small private university in a small remote town.
+There are about 2000 undergraduate students and discussion of adding graduate
+programs for some majors.
+
+Majors include various engineering disciplines, various science disciplines
+including Physics and Mathematics, Computer Science, and Business.
+
+The university layout has a string of connected buildings running roughly West
+to East. Unles sotherwise noted, the buildings have only one story.
+
+
+*********************************************
+* The academic buildings from West to East: *
+*********************************************
+
+<engineering building name TDB> is the Engineering Building. It includes
+classrooms, labs, offices, and an atrium. It also has a machine shop and project
+area.
+
+The Dining Hall contains several restaurants and a mailroom in the basement
+(reachable by stairs and an elevator). The atrium spans the two floors with
+auditorium seating and a small stage at the basemet floor.
+
+The library building is little more than a hallway, a security office, a health
+center, and of course a small library, described in Library.txt.
+
+The sciences building, denoted SB, contains classrooms, offices, and a computer
+lab.
+
+The business building contains a writing help center, offices, classrooms, and a
+large fancy atrium in the center.
+
+
+***********
+* Outside *
+***********
+
+The buildings are surrounded by a walkway making a complete loop. There are a
+few parking lots near some of the buildings. Beyond the parking lots are forests
+and wilderness. At the Eastern end of campus there is a road leading into town.
+
+
+*******************
+* Other Buildings *
+*******************
+
+These buildings are not connected to the academic buildings, so one must go
+outside to access them.
+
+<name TBD> Hall: (dorm)
+North of <engineering building name TBD>, there is a large dormitory building
+that houses approximately 400 students in four wings, with an office area at the
+center. The dorm wings have 3 stories each and the office area is one story.
+
+Campus Townhouses:
+South of <engineering building name TBD>, there is a row of townhouses housing
+approximately 200 students. These are the most desirable housing on campus.
+
+<name TBD> Hall: (dorm)
+North of the dining hall, there is a large dormitory building that houses
+approximately 400 students in four wings, with an office area at the center. The
+dorm wings have 3 stories each and the office area is one story.  The basement
+of this building contains many storage rooms, all locked. It also contains one
+storage room which was repurposed as an amateur radio club, <Fake/invalid
+callsign TBD>.
+
+Administrative Building:
+North of the Business building is the administrative building. Among other
+offices, this contains the President's Office.
+
+<name TBD> (Hockey) Arena:
+South of the Business building is the hockey arena. It also contains a gymnasium
+and several restaurants next to a lounge area.
+
+              _____
+Campus map:  |  N  |
+             |E + W|
+             |__S__|
+                           /\
+                           ||
+DM   DM             AB   |    |
+ |    |              |   |Road|
+EB - DH - LB - SB - BB - | to |
+ |                   |   |town|
+TH                  HA   |    |

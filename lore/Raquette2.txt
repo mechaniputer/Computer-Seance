@@ -1,0 +1,4 @@
+The Raquette 2 Computer, made by Raquette Computer Corporation, is an 8-bit
+microcomputer equipped with a MOS 6502 CPU. It is considered a low cost machine
+and has been adopted by <name TBD> college as the standard instructional
+machine. Other machines may be used for specific applications however.
