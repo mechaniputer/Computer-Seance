@@ -1012,7 +1012,8 @@ int Raquette::step(bool verbose) {
 
 		case uint8_t(0x08): // PHP
 			if(verbose) std::cout << "PHP" << std::endl;
-			tmp = (flag_c<<6) + (flag_z<<5) + (flag_i<<4) + (flag_d<<3) + (flag_b<<2) + (flag_v<<1) + (flag_n);
+			// Note: flag_b bit pushed is always 1 from BRK or PHP instruction
+			tmp = (flag_n<<7) + (flag_v<<6) + (0x1<<5) + (0x1<<4) + (flag_d<<3) + (flag_i<<2) + (flag_z<<1) + (flag_c);
 			memory[0x100+RAQ_STACK--] = tmp;
 			opbytes = 1;
 			break;
@@ -1029,13 +1030,13 @@ int Raquette::step(bool verbose) {
 			RAQ_STACK += 1;
 			tmp = (memory[0x100+RAQ_STACK]);
 
-			flag_n = ((tmp & 0b00000001) !=0);
-			flag_v = ((tmp & 0b00000010) !=0);
-			flag_b = ((tmp & 0b00000100) !=0);
+			flag_c = ((tmp & 0b00000001) !=0);
+			flag_z = ((tmp & 0b00000010) !=0);
+			flag_i = ((tmp & 0b00000100) !=0);
 			flag_d = ((tmp & 0b00001000) !=0);
-			flag_i = ((tmp & 0b00010000) !=0);
-			flag_z = ((tmp & 0b00100000) !=0);
-			flag_c = ((tmp & 0b01000000) !=0);
+			flag_b = ((tmp & 0b00010000) !=0);
+			flag_v = ((tmp & 0b01000000) !=0);
+			flag_n = ((tmp & 0b10000000) !=0);
 
 			opbytes = 1;
 			break;

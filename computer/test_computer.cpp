@@ -236,7 +236,7 @@ uint8_t tmp;
 	// Have to manually set PC for this test suite
 	raquette.pc = 0x0400;
 
-	int bk = 0x63d;
+	int bk = 0x808;
 	for(int i=0; i<80000; i++){
 		raquette.show_regs();
 		if(raquette.step(true)) break;
