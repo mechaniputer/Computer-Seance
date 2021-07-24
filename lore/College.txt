@@ -2,14 +2,14 @@
 * The College *
 ***************
 
-<name TBD> College is a small private university in a small remote town.
+<name TBD> College is a small private college in a small remote town.
 There are about 2000 undergraduate students and discussion of adding graduate
 programs for some majors.
 
 Majors include various engineering disciplines, various science disciplines
 including Physics and Mathematics, Computer Science, and Business.
 
-The university layout has a string of connected buildings running roughly West
+The college layout has a string of connected buildings running roughly West
 to East. Unles sotherwise noted, the buildings have only one story.
 
 
