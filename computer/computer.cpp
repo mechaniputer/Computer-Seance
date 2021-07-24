@@ -266,10 +266,13 @@ uint8_t Raquette::rorHelper(uint8_t byte) {
 
 // Sets new value of pc (without increment by 2)
 void Raquette::branchHelper(){
+	int tmp;
 	if (memory[pc+1]&0b10000000){ // It is negative
-		pc = pc - (((~memory[pc+1])+1) & 0b01111111);
+		tmp = pc - (((~memory[pc+1])+1) & 0b11111111);
+		pc = tmp;
 	}else{ // It is positive
-		pc = pc + (memory[pc+1] & 0b01111111);
+		tmp = pc + (memory[pc+1] & 0b01111111);
+		pc = tmp;
 	}
 }
 
@@ -292,7 +295,7 @@ int Raquette::step(bool verbose) {
 	opbytes = 0;
 	switch (thisbyte) {
 		case uint8_t(0x00): // BRK
-			std::cout << "BRK\n";
+			if(verbose) std::cout << "BRK\n";
 			flag_b = true;
 			// TODO push stuff to stack, do interrupt
 			// Push MSB of PC
@@ -300,8 +303,12 @@ int Raquette::step(bool verbose) {
 			// Push status register
 			// Set interrupt disable
 			// Load PC from IRQ interrupt vector at 0xFFFE and 0xFFFF
-			assert(0);
-			return 1;
+			opbytes = 1;
+			break;
+
+		case uint8_t(0xEA): // NOP
+			if(verbose) std::cout << "NOP\n";
+			opbytes = 1;
 			break;
 
 		case uint8_t(0xA9): // LDA
@@ -494,7 +501,7 @@ int Raquette::step(bool verbose) {
 
 		case uint8_t(0xBA): // TSX
 			if(verbose) std::cout << "TSX\n";
-			RAQ_X = RAQ_ACC;
+			RAQ_X = RAQ_STACK;
 			flag_z = (RAQ_X == 0);
 			flag_n = ((RAQ_X & 0b10000000) != 0); // Negative flag if sign bit set
 			opbytes = 1;
@@ -664,7 +671,7 @@ int Raquette::step(bool verbose) {
 		case uint8_t(0xC1):
 		case uint8_t(0xD1):
 			std::tie(eff_addr, opbytes) = aModeHelper(thisbyte);
-			if(verbose) std::cout << "CMP " << std::hex << eff_addr << std::dec << " pc+=" << opbytes << std::endl;
+			if(verbose) std::cout << "CMP addr:" << std::hex << eff_addr << " val:" << (int) memory[eff_addr] << std::dec << " pc+=" << opbytes << std::endl;
 			tmp = RAQ_ACC - memory[eff_addr];
 			flag_z = (RAQ_ACC == memory[eff_addr]); // Zero flag if equal
 			flag_n = ((tmp & 0b10000000) != 0); // Negative flag if sign bit set

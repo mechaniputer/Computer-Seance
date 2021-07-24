@@ -193,11 +193,72 @@ void test_raq_computer(){
 	return;
 }
 
+void test_raq_all(){
+	std::ifstream infile("6502_65C02_functional_tests/6502_functional_test.bin", std::ios::binary | std::ios::in);
+	if(!infile){
+		std::cout << "Cannot open ROM file\n";
+		return;
+	}
+	//get length of file
+	infile.seekg(0, std::ios::end);
+	size_t length = infile.tellg();
+	infile.seekg(0, std::ios::beg);
+
+	std::cout << "Opened file of length " << length << std::endl;
+
+	char * buffer = new char[length];
+	std::cout << "length " << length << std::endl;
+	infile.read(buffer, length);
+
+	// Zero low mem
+	uint8_t raq_rom_arr[0xFFFF];
+//	for (unsigned i=0; i < 0x0400; i++) {
+//		raq_rom_arr[i] = 0x00;
+//	}
+uint8_t tmp;
+	// Copy in ROM
+	for (unsigned i=0; i < length; i++) {
+		tmp = buffer[i];
+		raq_rom_arr[i] = tmp;
+//		raq_rom_arr[i+0x0400] = tmp;
+//		std::cout << std::hex << i+0x0400 << std::dec << std::endl;
+	}
+
+	// Zero high mem
+//	for (unsigned i=(0x0400+length); i < 0xFFFF; i++) {
+//		raq_rom_arr[i] = 0x00;
+//	}
+
+	delete [] buffer;
+
+	Raquette raquette(raq_rom_arr, 0xFFFF+1);
+
+	// Have to manually set PC for this test suite
+	raquette.pc = 0x0400;
+
+	int bk = 0x63d;
+	for(int i=0; i<80000; i++){
+		raquette.show_regs();
+		if(raquette.step(true)) break;
+		if(raquette.pc == bk){
+			// Try two more steps
+			raquette.step(true);
+			raquette.show_regs();
+			raquette.step(true);
+			// Still stuck?
+			if(raquette.pc == bk) break;
+		}
+	}
+	raquette.show_regs();
+
+}
+
 int main() {
 //	test_base_computer();
 //	test_raq_computer();
 //	test_raq_disp();
-	test_raq_romfile(); // Loads a 12K ROM file into high mem and runs it
+//	test_raq_romfile(); // Loads a 12K ROM file into high mem and runs it
+	test_raq_all(); // Loads a ~13k functional test ROM file to 0x0400 and runs it
 
 	return 0;
 }
