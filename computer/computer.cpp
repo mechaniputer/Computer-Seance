@@ -300,6 +300,7 @@ int Raquette::step(bool verbose) {
 			// Push status register
 			// Set interrupt disable
 			// Load PC from IRQ interrupt vector at 0xFFFE and 0xFFFF
+			assert(0);
 			return 1;
 			break;
 
@@ -737,6 +738,7 @@ int Raquette::step(bool verbose) {
 		case uint8_t(0x06): // ASL Zero Page
 			if(verbose) std::cout << "ASL Zero Page\n";
 			eff_addr = memory[pc+1];
+
 			tmp = memory[eff_addr];
 			flag_c = tmp & 0b10000000;
 			tmp <<= 1;
@@ -749,7 +751,15 @@ int Raquette::step(bool verbose) {
 		case uint8_t(0x16): // ASL Zero Page, X
 			// Wrap around if sum of base and reg exceeds 0xFF
 			std::cout << "ASL Zero Page, X\n";
-			assert(0);
+			eff_addr = ((memory[pc+1] + RAQ_X) % 0xFF); // Wrap around if sum of base and reg exceeds 0xFF
+
+			tmp = memory[eff_addr];
+			flag_c = tmp & 0b10000000;
+			tmp <<= 1;
+			memory[eff_addr] = tmp;
+			flag_z = (tmp == 0x0);
+			flag_n = tmp & 0b10000000;
+			opbytes = 2;
 			break;
 
 		case uint8_t(0x0E): // ASL Absolute
@@ -995,10 +1005,9 @@ int Raquette::step(bool verbose) {
 
 		case uint8_t(0x08): // PHP
 			if(verbose) std::cout << "PHP" << std::endl;
-			// TODO push processor status
-			//memory[0x100+RAQ_STACK--] = RAQ_ACC;
+			tmp = (flag_c<<6) + (flag_z<<5) + (flag_i<<4) + (flag_d<<3) + (flag_b<<2) + (flag_v<<1) + (flag_n);
+			memory[0x100+RAQ_STACK--] = tmp;
 			opbytes = 1;
-			assert(0);
 			break;
 
 		case uint8_t(0x68): // PLA
@@ -1011,10 +1020,17 @@ int Raquette::step(bool verbose) {
 		case uint8_t(0x28): // PLP
 			if(verbose) std::cout << "PLP" << std::endl;
 			RAQ_STACK += 1;
-			// TODO pop processor status
-			//RAQ_ACC = (memory[0x100+RAQ_STACK]);
+			tmp = (memory[0x100+RAQ_STACK]);
+
+			flag_n = ((tmp & 0b00000001) !=0);
+			flag_v = ((tmp & 0b00000010) !=0);
+			flag_b = ((tmp & 0b00000100) !=0);
+			flag_d = ((tmp & 0b00001000) !=0);
+			flag_i = ((tmp & 0b00010000) !=0);
+			flag_z = ((tmp & 0b00100000) !=0);
+			flag_c = ((tmp & 0b01000000) !=0);
+
 			opbytes = 1;
-			assert(0);
 			break;
 
 		case uint8_t(0x90): // BCC

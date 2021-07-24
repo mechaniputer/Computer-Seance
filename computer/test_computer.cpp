@@ -62,8 +62,8 @@ void test_raq_disp(){
 // This is a temporary debugging test that expects a proprietary ROM that we cannot not include in the repo.
 // We will have our own FOSS ROM eventually.
 void test_raq_romfile(){
-	std::ifstream infile("A2ROM.BIN", std::ios::binary | std::ios::in);
-//	std::ifstream infile("apple.rom", std::ios::binary | std::ios::in);
+//	std::ifstream infile("A2ROM.BIN", std::ios::binary | std::ios::in);
+	std::ifstream infile("apple.rom", std::ios::binary | std::ios::in);
 	if(!infile){
 		std::cout << "Cannot open ROM file\n";
 		return;
