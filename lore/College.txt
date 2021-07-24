@@ -78,7 +78,7 @@ and several restaurants next to a lounge area.
 
               _____
 Campus map:  |  N  |
-             |E + W|
+             |W + E|
              |__S__|
                            /\
                            ||
