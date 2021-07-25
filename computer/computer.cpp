@@ -1022,6 +1022,8 @@ int Raquette::step(bool verbose) {
 			if(verbose) std::cout << "PLA" << std::endl;
 			RAQ_STACK += 1;
 			RAQ_ACC = (memory[0x100+RAQ_STACK]);
+			flag_z = (RAQ_ACC == 0); // Zero flag if zero
+			flag_n = ((RAQ_ACC & 0b10000000) != 0); // Negative flag if sign bit set
 			opbytes = 1;
 			break;
 
@@ -1136,7 +1138,6 @@ int Raquette::step(bool verbose) {
 			break;
 
 		case uint8_t(0xF8): // SED
-			assert(0); // This instruction works but decimal mode is not supported by ADC/SBC
 			if(verbose) std::cout << "SED\n";
 			flag_d = true;
 			opbytes = 1;
