@@ -30,35 +30,6 @@ void test_base_computer(){
 	return;
 }
 
-void test_raq_disp(){
-	std::cout << "Testing Raquette computer display output\n";
-
-	// Displays "RAQUETTE 64" on second row of display
-	// All other positions should display "*"
-	uint8_t raq_test_disp[0xFFFF];
-	for (unsigned i=0x0400; i < 0x07FF; i++) { // Note that this also fills the 8 ignored bytes
-		raq_test_disp[i] = 0xAA; // char '*'
-	}
-	raq_test_disp[0x048E] = 0xD2; // char R
-	raq_test_disp[0x048F] = 0x81; // char A
-	raq_test_disp[0x0490] = 0xD1; // char Q
-	raq_test_disp[0x0491] = 0xD5; // char U
-	raq_test_disp[0x0492] = 0xC5; // char E
-	raq_test_disp[0x0493] = 0xD4; // char T
-	raq_test_disp[0x0494] = 0xD4; // char T
-	raq_test_disp[0x0495] = 0xC5; // char E
-	raq_test_disp[0x0496] = 0xA0; // char sp
-	raq_test_disp[0x0497] = 0xB6; // char 6
-	raq_test_disp[0x0498] = 0xB4; // char 4
-
-	Raquette raquette(raq_test_disp, 0xFFFF);
-
-	raquette.dumpmem(0x0480,40); // second row
-	raquette.show_screen();
-
-	return;
-}
-
 // This is a temporary debugging test that expects a proprietary ROM that we cannot not include in the repo.
 // We will have our own FOSS ROM eventually.
 void test_raq_romfile(){
@@ -121,78 +92,6 @@ void test_raq_romfile(){
 	std::cout << "Ran for " << numstep << " steps\n";
 }
 
-void test_raq_computer(){
-	std::cout << "Testing Raquette computer\n";
-	uint8_t raq_asm_test[11];
-	raq_asm_test[0] = 0x38; // SEC
-	raq_asm_test[1] = 0xA5; // LDA zero page
-	raq_asm_test[2] = 0x08; // addr 8
-	raq_asm_test[3] = 0x65; // ADC zero page
-	raq_asm_test[4] = 0x09; // addr 9
-	raq_asm_test[5] = 0x85; // STA zero page
-	raq_asm_test[6] = 0x0A; // addr 10
-	raq_asm_test[7] = 0x00; // BRK
-	raq_asm_test[8] = 0xD0; // x
-	raq_asm_test[9] = 0x90; // y
-	raq_asm_test[10] = 0x00; // z
-
-	uint8_t raq_jmp_test[8];
-	raq_jmp_test[0] = 0x4C; // JMP absolute
-	raq_jmp_test[1] = 0x05;
-	raq_jmp_test[2] = 0x00;
-	raq_jmp_test[3] = 0x00;
-	raq_jmp_test[4] = 0x00;
-	raq_jmp_test[5] = 0x4C; // JMP absolute
-	raq_jmp_test[6] = 0x00;
-	raq_jmp_test[7] = 0xF0;
-
-	uint8_t raq_branch_test[8];
-	raq_branch_test[0] = 0x90; // BCC (forwards)
-	raq_branch_test[1] = 0x04;
-	raq_branch_test[2] = 0x00;
-	raq_branch_test[3] = 0x00;
-	raq_branch_test[4] = 0x00;
-	raq_branch_test[5] = 0x00;
-	raq_branch_test[6] = 0x90; // BCC (backwards)
-	raq_branch_test[7] = 0xFA; // decimal -6
-
-	uint8_t raq_sbc_test[8];
-	raq_sbc_test[0] = 0x38; // SEC
-//	raq_sbc_test[0] = 0x18; // CLC
-	raq_sbc_test[1] = 0xA9; // LDA Immediate
-	raq_sbc_test[2] = 0xd0; // 
-	raq_sbc_test[3] = 0xE9; // SBC Immediate
-	raq_sbc_test[4] = 0x30; //
-	raq_sbc_test[5] = 0x00;
-	raq_sbc_test[6] = 0x00;
-	raq_sbc_test[7] = 0x00;
-
-	uint8_t raq_shift_test[10];
-	raq_shift_test[0] = 0xA9; // LDA Immediate
-	raq_shift_test[1] = 0xFF;
-	raq_shift_test[2] = 0x0A;
-	raq_shift_test[3] = 0x0A;
-	raq_shift_test[4] = 0x0A;
-	raq_shift_test[5] = 0x0A;
-	raq_shift_test[6] = 0x0A;
-	raq_shift_test[7] = 0x0A;
-	raq_shift_test[8] = 0x0A;
-	raq_shift_test[9] = 0x0A;
-
-
-	Raquette raquette(raq_shift_test, 10);
-
-	raquette.dumpmem(0x0,8);
-	raquette.show_regs();
-	while (!raquette.step(true)) {
-		raquette.show_regs();
-	}
-	raquette.show_regs();
-	raquette.dumpmem(0x0,8);
-
-	return;
-}
-
 void test_raq_all(){
 	std::ifstream infile("6502_65C02_functional_tests/6502_functional_test.bin", std::ios::binary | std::ios::in);
 	if(!infile){
@@ -236,7 +135,7 @@ uint8_t tmp;
 	// Have to manually set PC for this test suite
 	raquette.pc = 0x0400;
 
-	int bk = 0x9d7;
+	int bk = 0x0f30;
 	for(int i=0; i<80000; i++){
 		raquette.show_regs();
 		if(raquette.step(true)) break;
@@ -255,8 +154,6 @@ uint8_t tmp;
 
 int main() {
 //	test_base_computer();
-//	test_raq_computer();
-//	test_raq_disp();
 //	test_raq_romfile(); // Loads a 12K ROM file into high mem and runs it
 	test_raq_all(); // Loads a ~13k functional test ROM file to 0x0400 and runs it
 

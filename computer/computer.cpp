@@ -297,13 +297,26 @@ int Raquette::step(bool verbose) {
 		case uint8_t(0x00): // BRK
 			if(verbose) std::cout << "BRK\n";
 			flag_b = true;
-			// TODO push stuff to stack, do interrupt
+
+			// Note: BRK is a 2-byte opcode with the second byte ignored. Much documentation is incorrect.
 			// Push MSB of PC
+			memory[0x100+RAQ_STACK--] = (((pc+2)>>8) & 0b11111111);
 			// Push LSB of PC
-			// Push status register
+			memory[0x100+RAQ_STACK--] = ((pc+2) & 0b11111111);
+
+			// Note: flag_b bit pushed is always 1 from BRK or PHP instruction
+			tmp = (flag_n<<7) + (flag_v<<6) + (0x1<<5) + (0x1<<4) + (flag_d<<3) + (flag_i<<2) + (flag_z<<1) + (flag_c);
+			memory[0x100+RAQ_STACK--] = tmp;
+
 			// Set interrupt disable
+			flag_i = true;
+
 			// Load PC from IRQ interrupt vector at 0xFFFE and 0xFFFF
-			opbytes = 1;
+			tmp = memory[0xFFFF]; // tmp is an unsigned int with room for shifts
+			eff_addr = (tmp << 8) + memory[0xFFFE];
+			pc = eff_addr;
+
+			opbytes = 0;
 			break;
 
 		case uint8_t(0xEA): // NOP
@@ -346,7 +359,13 @@ int Raquette::step(bool verbose) {
 			break;
 
 		case uint8_t(0xB6): // LDX Zero Page, Y
-			assert(0);
+			opbytes = 2;
+			// The next byte is an address. Prepend it with 00 and add Y to it.
+			eff_addr = ((memory[pc+1] + RAQ_Y) % 0xFF); // Wrap around if sum of base and reg exceeds 0xFF
+			if(verbose) std::cout << "LDX zero page, y " << std::hex << eff_addr << std::dec << " pc+=" << opbytes << std::endl;
+			RAQ_X = memory[eff_addr];
+			flag_z = (RAQ_X == 0); // Zero flag if zero
+			flag_n = ((RAQ_X & 0b10000000) != 0); // Negative flag if sign bit set
 			break;
 
 		case uint8_t(0xAE): // LDX Absolute
@@ -1001,8 +1020,34 @@ int Raquette::step(bool verbose) {
 			if(verbose) std::cout << "return to " << std::hex << eff_addr << std::dec << std::endl;
 			RAQ_STACK += 2;
 			pc = eff_addr;
+
 			opbytes = 0;
 			break;
+
+		case uint8_t(0x40): // RTI
+			if(verbose) std::cout << "RTI" << std::endl;
+
+			// Pop status from stack
+			RAQ_STACK += 1;
+			tmp = (memory[0x100+RAQ_STACK]);
+
+			flag_c = ((tmp & 0b00000001) !=0);
+			flag_z = ((tmp & 0b00000010) !=0);
+			flag_i = ((tmp & 0b00000100) !=0);
+			flag_d = ((tmp & 0b00001000) !=0);
+			flag_b = ((tmp & 0b00010000) !=0);
+			flag_v = ((tmp & 0b01000000) !=0);
+			flag_n = ((tmp & 0b10000000) !=0);
+
+			// Pop program counter from stack
+			eff_addr = ( ((memory[0x100+RAQ_STACK+0x2])<<8) | (memory[0x100+RAQ_STACK+1]) ); // Unline RTS, no +1
+			if(verbose) std::cout << "return to " << std::hex << eff_addr << std::dec << std::endl;
+			RAQ_STACK += 2;
+			pc = eff_addr;
+
+			opbytes = 0;
+			break;
+
 
 		case uint8_t(0x48): // PHA
 			if(verbose) std::cout << "PHA" << std::endl;
