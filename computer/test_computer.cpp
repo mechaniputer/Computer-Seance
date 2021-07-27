@@ -1,7 +1,7 @@
 #include <iostream>
 #include <fstream>
 #include "computer.hpp"
-
+#include "raquette.hpp"
 
 #define BASEBYTES 2
 #define BASEWORDS 16
@@ -83,7 +83,7 @@ void test_raq_romfile(){
 }
 
 void test_raq_all(){
-	std::ifstream infile("6502_65C02_functional_tests/6502_functional_test.bin", std::ios::binary | std::ios::in);
+	std::ifstream infile("software/raquette/functionalTest/6502_functional_test.bin", std::ios::binary | std::ios::in);
 	if(!infile){
 		std::cout << "Cannot open ROM file\n";
 		return;
