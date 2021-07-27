@@ -135,8 +135,8 @@ uint8_t tmp;
 	// Have to manually set PC for this test suite
 	raquette.pc = 0x0400;
 
-	int bk = 0x184f;
-	for(int i=0; i<80000; i++){
+	int bk = 0x23d4;
+	for(int i=0; i<54570; i++){
 		raquette.show_regs();
 		if(raquette.step(true)) break;
 		if(raquette.pc == bk){
@@ -149,6 +149,11 @@ uint8_t tmp;
 		}
 	}
 	raquette.show_regs();
+
+	// Single step
+	while(!raquette.step(true) && std::cin.get()){
+		raquette.show_regs();
+	}
 
 }
 

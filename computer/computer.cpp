@@ -210,7 +210,7 @@ std::tuple<int, int> Raquette::aModeHelper(uint8_t thisbyte) {
 		case uint8_t(0b00000000): // 00 (Indirect, X)
 			assert(pc+1 <= 0xFFFF);
 			// The next byte is an address. Prepend it with 00, add the contents of X to it, and get the two-byte address from that memory location.
-			tmp = memory[pc+1] + RAQ_X; // First address
+			tmp = ((memory[pc+1] + RAQ_X) & 0xFF); // First address
 			tmp2 = memory[tmp+1]; // MSB of second address
 			eff_addr = (tmp2 << 8) + memory[tmp]; // Plus LSB of second address
 			assert(eff_addr <= 0xFFFF);
@@ -237,30 +237,30 @@ std::tuple<int, int> Raquette::aModeHelper(uint8_t thisbyte) {
 }
 
 // Performs common steps of ROL instructions
-// TODO bounds checks
 uint8_t Raquette::rolHelper(uint8_t byte) {
 	unsigned tmp, tmp2; // For intermediate values below
 	tmp = byte;
-	// Rotate TMP left, carry goes into bit 0, bit 7 becomes new carry flag
+	// Rotate tmp left, carry goes into bit 0, bit 7 becomes new carry flag
 	tmp2 = tmp;
 	tmp <<=1;
 	tmp +=(flag_c ? 0x1 : 0x0);
 	flag_c = ((tmp2 & 0b10000000) != 0);
 	flag_n = ((tmp & 0b10000000) != 0);
+	flag_z = (tmp == 0); // Zero flag if zero
 	return tmp;
 }
 
 // Performs common steps of ROR instructions
-// TODO bounds checks
 uint8_t Raquette::rorHelper(uint8_t byte) {
 	unsigned tmp, tmp2; // For intermediate values below
 	tmp = byte;
-	// Rotate TMP right, carry goes into bit 7, bit 0 becomes new carry flag
+	// Rotate tmp right, carry goes into bit 7, bit 0 becomes new carry flag
 	tmp2 = tmp;
 	tmp >>=1;
-	tmp +=(flag_c ? 0x10000000 : 0x0);
+	tmp +=(flag_c ? 0b10000000 : 0x0);
 	flag_c = ((tmp2 & 0b00000001) != 0);
 	flag_n = ((tmp & 0b10000000) != 0);
+	flag_z = (tmp == 0); // Zero flag if zero
 	return tmp;
 }
 
@@ -567,13 +567,27 @@ int Raquette::step(bool verbose) {
 			break;
 
 		case uint8_t(0xEE): // INC Absolute
-			if(verbose) std::cout << "INC AbsoluteX\n";
-			return 1;
+			if(verbose) std::cout << "INC Absolute\n";
+			tmp = memory[pc+2]; // tmp is an unsigned int with room for shifts
+			eff_addr = (tmp << 8) + memory[pc+1];
+			assert(eff_addr <= 0xFFFF);
+
+			memory[eff_addr] += 1;
+			flag_z = (memory[eff_addr] == 0); // Zero flag if zero
+			flag_n = ((memory[eff_addr] & 0b10000000) != 0); // Negative flag if sign bit set
+			opbytes = 3;
 			break;
 
 		case uint8_t(0xFE): // INC Absolute, X
 			if(verbose) std::cout << "INC Absolute, X\n";
-			return 1;
+			tmp = memory[pc+2]; // tmp is an unsigned int with room for shifts
+			eff_addr = (tmp << 8) + memory[pc+1] + RAQ_X;
+			assert(eff_addr <= 0xFFFF);
+
+			memory[eff_addr] += 1;
+			flag_z = (memory[eff_addr] == 0); // Zero flag if zero
+			flag_n = ((memory[eff_addr] & 0b10000000) != 0); // Negative flag if sign bit set
+			opbytes = 3;
 			break;
 
 		case uint8_t(0xC6): // DEC Zero Page
@@ -587,17 +601,35 @@ int Raquette::step(bool verbose) {
 
 		case uint8_t(0xD6): // DEC Zero Page, X
 			if(verbose) std::cout << "DEC Zero Page, X\n";
-			return 1;
+			eff_addr = ((memory[pc+1] + RAQ_X) & 0xFF); // Wrap around if sum of base and reg exceeds 0xFF
+			memory[eff_addr] = memory[eff_addr]-1;
+			flag_z = (memory[eff_addr] == 0); // Zero flag if zero
+			flag_n = ((memory[eff_addr] & 0b10000000) != 0); // Negative flag if sign bit set
+			opbytes = 2;
 			break;
 
 		case uint8_t(0xCE): // DEC Absolute
 			if(verbose) std::cout << "DEC AbsoluteX\n";
-			return 1;
+			tmp = memory[pc+2]; // tmp is an unsigned int with room for shifts
+			eff_addr = (tmp << 8) + memory[pc+1];
+			assert(eff_addr <= 0xFFFF);
+
+			memory[eff_addr] = memory[eff_addr]-1;
+			flag_z = (memory[eff_addr] == 0); // Zero flag if zero
+			flag_n = ((memory[eff_addr] & 0b10000000) != 0); // Negative flag if sign bit set
+			opbytes = 3;
 			break;
 
 		case uint8_t(0xDE): // DEC Absolute, X
 			if(verbose) std::cout << "DEC Absolute, X\n";
-			return 1;
+			tmp = memory[pc+2]; // tmp is an unsigned int with room for shifts
+			eff_addr = (tmp << 8) + memory[pc+1] + RAQ_X;
+			assert(eff_addr <= 0xFFFF);
+
+			memory[eff_addr] = memory[eff_addr]-1;
+			flag_z = (memory[eff_addr] == 0); // Zero flag if zero
+			flag_n = ((memory[eff_addr] & 0b10000000) != 0); // Negative flag if sign bit set
+			opbytes = 3;
 			break;
 
 		case uint8_t(0xE8): // INX
@@ -792,8 +824,7 @@ int Raquette::step(bool verbose) {
 			break;
 
 		case uint8_t(0x16): // ASL Zero Page, X
-			// Wrap around if sum of base and reg exceeds 0xFF
-			std::cout << "ASL Zero Page, X\n";
+			if(verbose) std::cout << "ASL Zero Page, X\n";
 			eff_addr = ((memory[pc+1] + RAQ_X) & 0xFF); // Wrap around if sum of base and reg exceeds 0xFF
 
 			tmp = memory[eff_addr];
@@ -806,13 +837,33 @@ int Raquette::step(bool verbose) {
 			break;
 
 		case uint8_t(0x0E): // ASL Absolute
-			std::cout << "ASL Absolute\n";
-			assert(0);
+			if(verbose) std::cout << "ASL Absolute\n";
+			tmp = memory[pc+2]; // tmp is an unsigned int with room for shifts
+			eff_addr = (tmp << 8) + memory[pc+1];
+			assert(eff_addr <= 0xFFFF);
+
+			tmp = memory[eff_addr];
+			flag_c = tmp & 0b10000000;
+			tmp <<= 1;
+			memory[eff_addr] = tmp;
+			flag_z = (tmp == 0x0);
+			flag_n = tmp & 0b10000000;
+			opbytes = 3;
 			break;
 
 		case uint8_t(0x1E): // ASL Absolute, X
-			std::cout << "ASL Absolute, X\n";
-			assert(0);
+			if(verbose) std::cout << "ASL Absolute, X\n";
+			tmp = memory[pc+2]; // tmp is an unsigned int with room for shifts
+			eff_addr = (tmp << 8) + memory[pc+1] + RAQ_X;
+			assert(eff_addr <= 0xFFFF);
+
+			tmp = memory[eff_addr];
+			flag_c = tmp & 0b10000000;
+			tmp <<= 1;
+			memory[eff_addr] = tmp;
+			flag_z = (tmp == 0x0);
+			flag_n = tmp & 0b10000000;
+			opbytes = 3;
 			break;
 
 		case uint8_t(0x4A): // LSR Accumulator
@@ -827,6 +878,7 @@ int Raquette::step(bool verbose) {
 			break;
 
 		case uint8_t(0x46): // LSR Zero Page
+			if(verbose) std::cout << "LSR Zero Page\n";
 			eff_addr = memory[pc+1];
 			tmp = memory[eff_addr];
 			flag_c = tmp & 0x1;
@@ -838,6 +890,7 @@ int Raquette::step(bool verbose) {
 			break;
 
 		case uint8_t(0x56): // LSR Zero Page, X
+			if(verbose) std::cout << "LSR Zero Page, X\n";
 			eff_addr = ((memory[pc+1] + RAQ_X) & 0xFF); // Wrap around if sum of base and reg exceeds 0xFF
 			tmp = memory[eff_addr];
 			flag_c = tmp & 0x1;
@@ -849,13 +902,33 @@ int Raquette::step(bool verbose) {
 			break;
 
 		case uint8_t(0x4E): // LSR Absolute
+			if(verbose) std::cout << "LSR Absolute\n";
+			tmp = memory[pc+2]; // tmp is an unsigned int with room for shifts
+			eff_addr = (tmp << 8) + memory[pc+1];
+			assert(eff_addr <= 0xFFFF);
+
+			tmp = memory[eff_addr];
+			flag_c = tmp & 0x1;
+			tmp2 = tmp>>1;
+			memory[eff_addr] = tmp2;
+			flag_z = (memory[eff_addr] == 0x0);
+			flag_n = false;
 			opbytes = 3;
-			assert(0);
 			break;
 
 		case uint8_t(0x5E): // LSR Absolute, X
+			if(verbose) std::cout << "LSR Absolute, X\n";
+			tmp = memory[pc+2]; // tmp is an unsigned int with room for shifts
+			eff_addr = (tmp << 8) + memory[pc+1] + RAQ_X;
+			assert(eff_addr <= 0xFFFF);
+
+			tmp = memory[eff_addr];
+			flag_c = tmp & 0x1;
+			tmp2 = tmp>>1;
+			memory[eff_addr] = tmp2;
+			flag_z = (memory[eff_addr] == 0x0);
+			flag_n = false;
 			opbytes = 3;
-			assert(0);
 			break;
 
 		case uint8_t(0x2A): // ROL Accumulator
@@ -892,26 +965,27 @@ int Raquette::step(bool verbose) {
 			tmp = memory[pc+2]; // tmp is an unsigned int with room for shifts
 			eff_addr = (tmp << 8) + memory[pc+1] + RAQ_X;
 			assert(eff_addr <= 0xFFFF);
+			memory[eff_addr] = rolHelper(memory[eff_addr]);
 			opbytes = 3;
 			break;
 
 		case uint8_t(0x6A): // ROR Accumulator
 			if(verbose) std::cout << "ROR Accumulator\n";
-			RAQ_ACC = rolHelper(RAQ_ACC);
+			RAQ_ACC = rorHelper(RAQ_ACC);
 			opbytes = 1;
 			break;
 
 		case uint8_t(0x66): // ROR Zero Page
 			if(verbose) std::cout << "ROR Zero Page\n";
 			eff_addr = memory[pc+1];
-			memory[eff_addr] = rolHelper(memory[eff_addr]);
+			memory[eff_addr] = rorHelper(memory[eff_addr]);
 			opbytes = 2;
 			break;
 
 		case uint8_t(0x76): // ROR Zero Page, X
 			if(verbose) std::cout << "ROR Zero Page, X\n";
 			eff_addr = ((memory[pc+1] + RAQ_X) & 0xFF);
-			memory[eff_addr] = rolHelper(memory[eff_addr]);
+			memory[eff_addr] = rorHelper(memory[eff_addr]);
 			opbytes = 2;
 			break;
 
@@ -920,7 +994,7 @@ int Raquette::step(bool verbose) {
 			tmp = memory[pc+2]; // tmp is an unsigned int with room for shifts
 			eff_addr = (tmp << 8) + memory[pc+1];
 			assert(eff_addr <= 0xFFFF);
-			memory[eff_addr] = rolHelper(memory[eff_addr]);
+			memory[eff_addr] = rorHelper(memory[eff_addr]);
 			opbytes = 3;
 			break;
 
@@ -929,6 +1003,7 @@ int Raquette::step(bool verbose) {
 			tmp = memory[pc+2]; // tmp is an unsigned int with room for shifts
 			eff_addr = (tmp << 8) + memory[pc+1] + RAQ_X;
 			assert(eff_addr <= 0xFFFF);
+			memory[eff_addr] = rorHelper(memory[eff_addr]);
 			opbytes = 3;
 			break;
 
@@ -1073,9 +1148,9 @@ int Raquette::step(bool verbose) {
 			break;
 
 		case uint8_t(0x08): // PHP
-			if(verbose) std::cout << "PHP" << std::endl;
 			// Note: flag_b bit pushed is always 1 from BRK or PHP instruction
 			tmp = (flag_n<<7) + (flag_v<<6) + (0x1<<5) + (0x1<<4) + (flag_d<<3) + (flag_i<<2) + (flag_z<<1) + (flag_c);
+			if(verbose) std::cout << "PHP S:" << std::hex << tmp << std::dec << std::endl;
 			memory[0x100+RAQ_STACK--] = tmp;
 			opbytes = 1;
 			break;
