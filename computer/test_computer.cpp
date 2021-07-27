@@ -10,7 +10,7 @@
 void test_base_computer(){
 	std::cout << "Testing base computer with " << BASEBYTES << "x" << BASEWORDS << " memory and " << BASEREGS << " registers\n";
 
-	// Initial memory values (TODO load from file)
+	// Initial memory values
 	uint8_t memcontents[BASEWORDS*BASEBYTES];
 	for (unsigned i=0; i < BASEWORDS*BASEBYTES; i++) {
 		memcontents[i] = i;
@@ -45,7 +45,7 @@ void test_raq_romfile(){
 	infile.seekg(0, std::ios::beg);
 
 	char * buffer = new char[length];
-	std::cout << "length " << length << std::endl;
+	std::cout << "Opened file of length " << length << std::endl;
 	infile.read(buffer, length);
 
 	uint8_t raq_rom_arr[0xFFFF];
@@ -63,15 +63,6 @@ void test_raq_romfile(){
 	raquette.show_regs();
 	int numstep = 0;
 
-	raquette.memory[0x0] = 0xDE;
-	raquette.memory[0x1] = 0xAD;
-	raquette.memory[0x2] = 0xBE;
-	raquette.memory[0x3] = 0xEF;
-	raquette.memory[0x5] = 0xC0;
-	raquette.memory[0x6] = 0xFF;
-	raquette.memory[0x7] = 0xEE;
-//	raquette.memory[0xC000] = (0x0D | 0b10000000);
-
 	while (!raquette.step(true)) {
 		numstep++;
 		raquette.show_regs();
@@ -87,7 +78,6 @@ void test_raq_romfile(){
 	raquette.show_regs();
 
 	raquette.dumpmem(raquette.pc,8);
-//	raquette.dumpmem(0x01F9,8);
 	raquette.show_screen();
 	std::cout << "Ran for " << numstep << " steps\n";
 }
@@ -103,46 +93,34 @@ void test_raq_all(){
 	size_t length = infile.tellg();
 	infile.seekg(0, std::ios::beg);
 
-	std::cout << "Opened file of length " << length << std::endl;
-
 	char * buffer = new char[length];
-	std::cout << "length " << length << std::endl;
+	std::cout << "Opened file of length " << length << std::endl;
 	infile.read(buffer, length);
 
 	// Zero low mem
 	uint8_t raq_rom_arr[0xFFFF];
-//	for (unsigned i=0; i < 0x0400; i++) {
-//		raq_rom_arr[i] = 0x00;
-//	}
-uint8_t tmp;
+	uint8_t tmp;
 	// Copy in ROM
 	for (unsigned i=0; i < length; i++) {
 		tmp = buffer[i];
 		raq_rom_arr[i] = tmp;
-//		raq_rom_arr[i+0x0400] = tmp;
-//		std::cout << std::hex << i+0x0400 << std::dec << std::endl;
 	}
-
-	// Zero high mem
-//	for (unsigned i=(0x0400+length); i < 0xFFFF; i++) {
-//		raq_rom_arr[i] = 0x00;
-//	}
 
 	delete [] buffer;
 
 	Raquette raquette(raq_rom_arr, 0xFFFF+1);
 
 	// Have to manually set PC for this test suite
+	std::cout << "Manually set PC to 0x400\n";
 	raquette.pc = 0x0400;
 
-	int bk = 0x23d4;
+	int prevpc = 0xFFFFF;
 	int numsteps = 0;
 	while(true){
 		numsteps++;
-//		raquette.show_regs();
 		if(raquette.step(false)) break;
-		if(raquette.pc == bk) break;
-		bk = raquette.pc;
+		if(raquette.pc == prevpc) break;
+		prevpc = raquette.pc;
 	}
 	raquette.show_regs();
 	std::cout << "Executed " << numsteps << " instructions\n";

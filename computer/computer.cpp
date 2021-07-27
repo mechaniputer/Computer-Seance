@@ -142,7 +142,6 @@ Raquette::Raquette(uint8_t *init_contents, int len_contents) {
 	// Now initialize PC by reading reset vector from FFFC-FFFD
 	tmp = memory[0xFFFD]; // tmp is an unsigned int with room for shifts
 	eff_addr = (tmp << 8) + memory[0xFFFC];
-	std::cout << "Reset vector " << std::hex << eff_addr << std::dec << std::endl;
 	pc = eff_addr;
 }
 
