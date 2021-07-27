@@ -662,7 +662,6 @@ int Raquette::step(bool verbose) {
 
 			// TODO Handle decimal mode
 			if(flag_d) {
-				assert(0);
 			}
 			flag_c = (tmp > 0xFF); // Carry flag
 			flag_v = (((RAQ_ACC ^ tmp) & (memory[eff_addr] ^ tmp) & 0x80) != 0); // Overflow flag if sign bit is incorrect
@@ -686,7 +685,6 @@ int Raquette::step(bool verbose) {
 
 			// TODO Handle decimal mode
 			if(flag_d) {
-				assert(0);
 			}
 			flag_c = (tmp < 0x100); // Carry flag
 			flag_v = (((RAQ_ACC ^ tmp) & (~memory[eff_addr] ^ tmp) & 0x80) != 0); // This is the same overflow formula for ADC except operand is flipped

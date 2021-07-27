@@ -136,24 +136,16 @@ uint8_t tmp;
 	raquette.pc = 0x0400;
 
 	int bk = 0x23d4;
-	for(int i=0; i<54570; i++){
-		raquette.show_regs();
-		if(raquette.step(true)) break;
-		if(raquette.pc == bk){
-			// Try two more steps
-			raquette.step(true);
-			raquette.show_regs();
-			raquette.step(true);
-			// Still stuck?
-			if(raquette.pc == bk) break;
-		}
+	int numsteps = 0;
+	while(true){
+		numsteps++;
+//		raquette.show_regs();
+		if(raquette.step(false)) break;
+		if(raquette.pc == bk) break;
+		bk = raquette.pc;
 	}
 	raquette.show_regs();
-
-	// Single step
-	while(!raquette.step(true) && std::cin.get()){
-		raquette.show_regs();
-	}
+	std::cout << "Executed " << numsteps << " instructions\n";
 
 }
 
