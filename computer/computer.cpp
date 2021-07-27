@@ -658,11 +658,32 @@ int Raquette::step(bool verbose) {
 		case uint8_t(0x71):
 			std::tie(eff_addr, opbytes) = aModeHelper(thisbyte);
 			if(verbose) std::cout << "ADC " << std::hex << eff_addr << std::dec << " pc+=" << opbytes << std::endl;
-			tmp = RAQ_ACC + memory[eff_addr] + (flag_c ? 1 : 0);
 
-			// TODO Handle decimal mode
+			// Handle decimal mode
 			if(flag_d) {
+				uint8_t acc_lo = (RAQ_ACC & 0x0F);
+				uint8_t acc_hi = ((RAQ_ACC & 0xF0)>>4);
+				uint8_t op_lo = (memory[eff_addr] & 0x0F);
+				uint8_t op_hi = ((memory[eff_addr] & 0xF0)>>4);
+				uint8_t res_lo = acc_lo + op_lo + (flag_c ? 1 : 0);
+				uint8_t res_hi = acc_hi + op_hi;
+
+				flag_c = false;
+				if(res_lo > 9){
+					// Carry lo to hi
+					res_lo -= 10;
+					res_hi += 1;
+				}
+				if(res_hi > 9){
+					// Carry out
+					res_hi -= 10;
+					flag_c = true;
+				}
+				RAQ_ACC = (res_hi<<4) + res_lo;
+				flag_z = (RAQ_ACC == 0); // Zero flag if zero
+				break;
 			}
+			tmp = RAQ_ACC + memory[eff_addr] + (flag_c ? 1 : 0);
 			flag_c = (tmp > 0xFF); // Carry flag
 			flag_v = (((RAQ_ACC ^ tmp) & (memory[eff_addr] ^ tmp) & 0x80) != 0); // Overflow flag if sign bit is incorrect
 			RAQ_ACC = tmp & 0xFF; // Assign final value
@@ -681,11 +702,37 @@ int Raquette::step(bool verbose) {
 			// Note, we assume that carry is set unless the previous SBC needed a borrow
 			std::tie(eff_addr, opbytes) = aModeHelper(thisbyte);
 			if(verbose) std::cout << "SBC " << std::hex << eff_addr << std::dec << " pc+=" << opbytes << std::endl;
-			tmp = RAQ_ACC - memory[eff_addr] - (flag_c ? 0 : 1);
 
-			// TODO Handle decimal mode
+			// Handle decimal mode
 			if(flag_d) {
+				int8_t acc_lo = (RAQ_ACC & 0x0F);
+				int8_t acc_hi = ((RAQ_ACC & 0xF0)>>4);
+				int8_t op_lo = (memory[eff_addr] & 0x0F);
+				int8_t op_hi = ((memory[eff_addr] & 0xF0)>>4);
+				int8_t res_lo = acc_lo - op_lo;
+				int8_t res_hi = acc_hi - op_hi;
+
+				if(flag_c == false) res_lo = res_lo - 1;
+
+				// carry flag set
+				flag_c = true;
+				if(res_lo < 0){
+					// Carry lo to hi
+					res_lo += 10;
+					res_hi -= 1;
+				}
+				if(res_hi < 0){
+					// Carry out
+					res_hi += 10;
+					flag_c = false;
+				}
+				res_lo = res_lo & 0xF;
+				res_hi = res_hi & 0xF;
+				RAQ_ACC = (res_hi<<4) + res_lo;
+				flag_z = (RAQ_ACC == 0); // Zero flag if zero
+				break;
 			}
+			tmp = RAQ_ACC - memory[eff_addr] - (flag_c ? 0 : 1);
 			flag_c = (tmp < 0x100); // Carry flag
 			flag_v = (((RAQ_ACC ^ tmp) & (~memory[eff_addr] ^ tmp) & 0x80) != 0); // This is the same overflow formula for ADC except operand is flipped
 			RAQ_ACC = tmp & 0xFF; // Assign final value
