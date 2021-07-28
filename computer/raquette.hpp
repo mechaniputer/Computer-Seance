@@ -13,5 +13,5 @@ class Raquette: public Computer {
 	void branchHelper();
 	int step(bool verbose = false);
 	void show_regs();
-	void show_screen();
+	void interactiveSession();
 };

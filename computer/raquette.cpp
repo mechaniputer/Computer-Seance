@@ -22,8 +22,8 @@ Raquette::Raquette(uint8_t *init_contents, int len_contents) {
 	num_words = 0xFFFF+1;
 	num_regs = 4; // A(cc), X(ind), Y(ind), S(tack ptr)
 
-	delete(regs);
-	delete(memory);
+	delete [] regs;
+	delete [] memory;
 	regs = new uint8_t[(width_bytes) * (num_regs)];
 	memory = new uint8_t[(width_bytes) * (num_words)];
 	pc = 0;
@@ -62,6 +62,7 @@ Raquette::Raquette(uint8_t *init_contents, int len_contents) {
 	tmp = memory[0xFFFD]; // tmp is an unsigned int with room for shifts
 	eff_addr = (tmp << 8) + memory[0xFFFC];
 	pc = eff_addr;
+
 }
 
 // Takes the current byte with the opcode part masked out
@@ -1396,7 +1397,7 @@ void Raquette::show_regs() {
 // Then we wrap onto the first row of the third level and after that there are 8 unused bytes
 // Then we repeat for the second rows of each of the three layers, etc.
 #define RAQ_CHAR(x) (charset[x % 0x40])
-void Raquette::show_screen(){
+void Raquette::interactiveSession(){
 	// The Apple 2 charset includes the same characters repeated in 4 variations (dark, blinking, etc)
 	// For now we only emulate one variation and map onto it from the other 4 variations using modulo division
 	char charset[0x40] = {
@@ -1410,32 +1411,41 @@ void Raquette::show_screen(){
 	noecho(); // Only show what the machine is showing
 	keypad(stdscr, TRUE); // Capture backspace, delete, arrow keys
 	curs_set(0); // Invisible cursor
-	WINDOW * win = newwin(24, 40, 0, 0);
+	WINDOW *win = newwin(24, 40, 0, 0);
+	wtimeout(win, 1); // Nonblocking getch
+	char ch;
+	int numstep = 0;
 
-	wtimeout(win, 100); // Nonblocking getch
+	do{
+		numstep++;
 
-	// TODO Only print the changes
-	// We will print the rows in memory-order
-	wmove(win, 0, 0);
-	for(int i=0; i<24; i++){
-		int row = (8*(i%3))+(i/3);
-		int rowaddr = (0x400 + (i*40) + ((i/3)*8));
-		int col = 0;
-		for(int j=0; j<40; j++){
-			mvwaddch(win, row, col++, RAQ_CHAR(memory[rowaddr+j]));
+		// Displaying every 500 steps gives roughly accurate performance for 1MHz
+		if(0==(numstep%500)){
+			// We will print the rows in memory-order
+			wmove(win, 0, 0);
+			for(int i=0; i<24; i++){
+				int row = (8*(i%3))+(i/3);
+				int rowaddr = (0x400 + (i*40) + ((i/3)*8));
+				int col = 0;
+				for(int j=0; j<40; j++){
+					mvwaddch(win, row, col++, RAQ_CHAR(memory[rowaddr+j]));
+				}
+			}
+
+			wrefresh(win);
+
+			ch = wgetch(win);
+			//std::cout << "Entered " << std::hex << (int) ch << std::dec << std::endl;
+			if(ch != ERR){
+				if(ch == 0xA){ // 0xA is line feed, and 0xD is CR. The Apple 2 expects the latter.
+					memory[0xC000] = 0x0D | 0b10000000;
+				}else{
+					memory[0xC000] = ch | 0b10000000;
+				}
+			}
 		}
-	}
+	}while(!step(false));
 
-	wrefresh(win);
-
-	char ch = wgetch(win);
+	// only endwin when exiting
 	endwin();
-	//std::cout << "Entered " << std::hex << (int) ch << std::dec << std::endl;
-	if(ch != ERR){
-		if(ch == 0xA){ // 0xA is line feed, and 0xD is CR. The Apple 2 expects the latter.
-			memory[0xC000] = 0x0D | 0b10000000;
-		}else{
-			memory[0xC000] = ch | 0b10000000;
-		}
-	}
 }

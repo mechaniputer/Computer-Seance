@@ -54,26 +54,15 @@ void test_raq_romfile(){
 	}
 	for (unsigned i=0; i < length; i++) {
 		raq_rom_arr[i+0xD000] = buffer[i];
-		std::cout << std::hex << i+0xD000 << std::dec << std::endl;
 	}
 
 	delete [] buffer;
 
 	Raquette raquette(raq_rom_arr, 0xFFFF+1);
-	raquette.show_regs();
-	int numstep = 0;
 
-	while (!raquette.step(true)) {
-		numstep++;
-		raquette.show_regs();
-		if(raquette.pc == 0xFD21) raquette.show_screen(); // FD21 is the keyboard loop
-	}
-	numstep++;
 	raquette.show_regs();
-
-	raquette.dumpmem(raquette.pc,8);
-	raquette.show_screen();
-	std::cout << "Ran for " << numstep << " steps\n";
+	raquette.interactiveSession();
+	raquette.show_regs();
 }
 
 void test_raq_all(){
