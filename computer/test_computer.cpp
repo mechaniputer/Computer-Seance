@@ -66,13 +66,7 @@ void test_raq_romfile(){
 	while (!raquette.step(true)) {
 		numstep++;
 		raquette.show_regs();
-//		std::cout << "step " << numstep << std::endl;
 		if(raquette.pc == 0xFD21) raquette.show_screen(); // FD21 is the keyboard loop
-		if(raquette.pc < 0xF800){
-//			if((numstep % 1000) == 0) raquette.show_screen();
-			raquette.memory[0xC000] = 0x0; // Clear keyboard just in case
-//			std::cin.get();
-		}
 	}
 	numstep++;
 	raquette.show_regs();

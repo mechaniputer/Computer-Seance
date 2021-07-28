@@ -10,6 +10,7 @@
 #define RAQ_X (regs[1])
 #define RAQ_Y (regs[2])
 #define RAQ_STACK (regs[3])
+#define ROM_LO (0xC000)
 
 // The "Raquette" is the standard instructional machine for the University.
 // TODO support smaller memory configurations than 64k
@@ -181,6 +182,18 @@ uint8_t Raquette::rorHelper(uint8_t byte) {
 	return tmp;
 }
 
+// Zero page acceses ignored
+// Branch, Jump ignored
+// pc ignored
+// Note: We do not support "any key down" functionality present in Apple //e and later
+void Raquette::softSwitchesHelper(int eff_addr){
+	if((eff_addr <= 0xC010) && (eff_addr > 0xC000)){
+		// Input strobe clear
+		memory[0xC000] = (memory[0xC000] & 0b01111111); // Clear bit 7 of 0xC000
+	}
+	return;
+}
+
 // Sets new value of pc (without increment by 2)
 void Raquette::branchHelper(){
 	int tmp;
@@ -208,6 +221,7 @@ int Raquette::step(bool verbose) {
 	unsigned tmp, tmp2; // For intermediate values below
 	int eff_addr, opbytes;
 	uint8_t thisbyte = memory[pc];
+	uint8_t tmpbyte;
 
 	opbytes = 0;
 	switch (thisbyte) {
@@ -254,6 +268,7 @@ int Raquette::step(bool verbose) {
 			RAQ_ACC = memory[eff_addr];
 			flag_z = (RAQ_ACC == 0); // Zero flag if zero
 			flag_n = ((RAQ_ACC & 0b10000000) != 0); // Negative flag if sign bit set
+			softSwitchesHelper(eff_addr);
 			break;
 
 		case uint8_t(0xA2): // LDX Immediate
@@ -263,6 +278,7 @@ int Raquette::step(bool verbose) {
 			RAQ_X = memory[eff_addr];
 			flag_z = (RAQ_X == 0); // Zero flag if zero
 			flag_n = ((RAQ_X & 0b10000000) != 0); // Negative flag if sign bit set
+			softSwitchesHelper(eff_addr);
 			break;
 
 		case uint8_t(0xA6): // LDX Zero Page
@@ -293,6 +309,7 @@ int Raquette::step(bool verbose) {
 			RAQ_X = memory[eff_addr];
 			flag_z = (RAQ_X == 0); // Zero flag if zero
 			flag_n = ((RAQ_X & 0b10000000) != 0); // Negative flag if sign bit set
+			softSwitchesHelper(eff_addr);
 			break;
 
 		case uint8_t(0xBE): // LDX Absolute, Y
@@ -304,6 +321,7 @@ int Raquette::step(bool verbose) {
 			RAQ_X = memory[eff_addr];
 			flag_z = (RAQ_X == 0); // Zero flag if zero
 			flag_n = ((RAQ_X & 0b10000000) != 0); // Negative flag if sign bit set
+			softSwitchesHelper(eff_addr);
 			break;
 
 		case uint8_t(0xA0): // LDY Immediate
@@ -313,6 +331,7 @@ int Raquette::step(bool verbose) {
 			RAQ_Y = memory[eff_addr];
 			flag_z = (RAQ_Y == 0); // Zero flag if zero
 			flag_n = ((RAQ_Y & 0b10000000) != 0); // Negative flag if sign bit set
+			softSwitchesHelper(eff_addr);
 			break;
 
 		case uint8_t(0xA4): // LDY Zero Page
@@ -343,6 +362,7 @@ int Raquette::step(bool verbose) {
 			RAQ_Y = memory[eff_addr];
 			flag_z = (RAQ_Y == 0); // Zero flag if zero
 			flag_n = ((RAQ_Y & 0b10000000) != 0); // Negative flag if sign bit set
+			softSwitchesHelper(eff_addr);
 			break;
 
 		case uint8_t(0xBC): // LDY Absolute, X
@@ -353,6 +373,7 @@ int Raquette::step(bool verbose) {
 			RAQ_Y = memory[eff_addr];
 			flag_z = (RAQ_Y == 0); // Zero flag if zero
 			flag_n = ((RAQ_Y & 0b10000000) != 0); // Negative flag if sign bit set
+			softSwitchesHelper(eff_addr);
 			break;
 
 		case uint8_t(0x86): // STX Zero Page
@@ -374,7 +395,10 @@ int Raquette::step(bool verbose) {
 		case uint8_t(0x8E): // STX Absolute
 			tmp = memory[pc+2]; // tmp is an unsigned int with room for shifts
 			eff_addr = (tmp << 8) + memory[pc+1];
-			memory[eff_addr] = RAQ_X;
+			if(eff_addr < ROM_LO){
+				memory[eff_addr] = RAQ_X;
+			}
+			softSwitchesHelper(eff_addr);
 			opbytes = 3;
 			if(verbose) std::cout << "STY Absolute" << std::hex << eff_addr << std::dec << " pc+=" << opbytes << std::endl;
 			break;
@@ -398,7 +422,10 @@ int Raquette::step(bool verbose) {
 		case uint8_t(0x8C): // STY Absolute
 			tmp = memory[pc+2]; // tmp is an unsigned int with room for shifts
 			eff_addr = (tmp << 8) + memory[pc+1];
-			memory[eff_addr] = RAQ_Y;
+			if(eff_addr < ROM_LO){
+				memory[eff_addr] = RAQ_Y;
+			}
+			softSwitchesHelper(eff_addr);
 			opbytes = 3;
 			if(verbose) std::cout << "STY Absolute" << std::hex << eff_addr << std::dec << " pc+=" << opbytes << std::endl;
 			break;
@@ -489,9 +516,14 @@ int Raquette::step(bool verbose) {
 			eff_addr = (tmp << 8) + memory[pc+1];
 			assert(eff_addr <= 0xFFFF);
 
-			memory[eff_addr] += 1;
-			flag_z = (memory[eff_addr] == 0); // Zero flag if zero
-			flag_n = ((memory[eff_addr] & 0b10000000) != 0); // Negative flag if sign bit set
+			tmpbyte = memory[eff_addr] + 1;
+			flag_z = (tmpbyte == 0); // Zero flag if zero
+			flag_n = ((tmpbyte & 0b10000000) != 0); // Negative flag if sign bit set
+
+			if(eff_addr < ROM_LO){
+				memory[eff_addr] = tmpbyte;
+			}
+			softSwitchesHelper(eff_addr);
 			opbytes = 3;
 			break;
 
@@ -501,9 +533,14 @@ int Raquette::step(bool verbose) {
 			eff_addr = (tmp << 8) + memory[pc+1] + RAQ_X;
 			assert(eff_addr <= 0xFFFF);
 
-			memory[eff_addr] += 1;
-			flag_z = (memory[eff_addr] == 0); // Zero flag if zero
-			flag_n = ((memory[eff_addr] & 0b10000000) != 0); // Negative flag if sign bit set
+			tmpbyte = memory[eff_addr] + 1;
+			flag_z = (tmpbyte == 0); // Zero flag if zero
+			flag_n = ((tmpbyte & 0b10000000) != 0); // Negative flag if sign bit set
+
+			if(eff_addr < ROM_LO){
+				memory[eff_addr] = tmpbyte;
+			}
+			softSwitchesHelper(eff_addr);
 			opbytes = 3;
 			break;
 
@@ -531,9 +568,14 @@ int Raquette::step(bool verbose) {
 			eff_addr = (tmp << 8) + memory[pc+1];
 			assert(eff_addr <= 0xFFFF);
 
-			memory[eff_addr] = memory[eff_addr]-1;
-			flag_z = (memory[eff_addr] == 0); // Zero flag if zero
-			flag_n = ((memory[eff_addr] & 0b10000000) != 0); // Negative flag if sign bit set
+			tmpbyte = memory[eff_addr]-1;
+			flag_z = (tmpbyte == 0); // Zero flag if zero
+			flag_n = ((tmpbyte & 0b10000000) != 0); // Negative flag if sign bit set
+
+			if(eff_addr < ROM_LO){
+				memory[eff_addr] = tmpbyte;
+			}
+			softSwitchesHelper(eff_addr);
 			opbytes = 3;
 			break;
 
@@ -543,9 +585,14 @@ int Raquette::step(bool verbose) {
 			eff_addr = (tmp << 8) + memory[pc+1] + RAQ_X;
 			assert(eff_addr <= 0xFFFF);
 
-			memory[eff_addr] = memory[eff_addr]-1;
-			flag_z = (memory[eff_addr] == 0); // Zero flag if zero
-			flag_n = ((memory[eff_addr] & 0b10000000) != 0); // Negative flag if sign bit set
+			tmpbyte = memory[eff_addr]-1;
+			flag_z = (tmpbyte == 0); // Zero flag if zero
+			flag_n = ((tmpbyte & 0b10000000) != 0); // Negative flag if sign bit set
+
+			if(eff_addr < ROM_LO){
+				memory[eff_addr] = tmpbyte;
+			}
+			softSwitchesHelper(eff_addr);
 			opbytes = 3;
 			break;
 
@@ -598,6 +645,7 @@ int Raquette::step(bool verbose) {
 				}
 				RAQ_ACC = (res_hi<<4) + res_lo;
 				flag_z = (RAQ_ACC == 0); // Zero flag if zero
+				softSwitchesHelper(eff_addr);
 				break;
 			}
 			tmp = RAQ_ACC + memory[eff_addr] + (flag_c ? 1 : 0);
@@ -606,6 +654,7 @@ int Raquette::step(bool verbose) {
 			RAQ_ACC = tmp & 0xFF; // Assign final value
 			flag_z = (RAQ_ACC == 0); // Zero flag if zero
 			flag_n = ((RAQ_ACC & 0b10000000) != 0); // Negative flag if sign bit set
+			softSwitchesHelper(eff_addr);
 			break;
 
 		case uint8_t(0xE9): // SBC
@@ -647,6 +696,7 @@ int Raquette::step(bool verbose) {
 				res_hi = res_hi & 0xF;
 				RAQ_ACC = (res_hi<<4) + res_lo;
 				flag_z = (RAQ_ACC == 0); // Zero flag if zero
+				softSwitchesHelper(eff_addr);
 				break;
 			}
 			tmp = RAQ_ACC - memory[eff_addr] - (flag_c ? 0 : 1);
@@ -655,6 +705,7 @@ int Raquette::step(bool verbose) {
 			RAQ_ACC = tmp & 0xFF; // Assign final value
 			flag_z = (RAQ_ACC == 0); // Zero flag if zero
 			flag_n = ((RAQ_ACC & 0b10000000) != 0); // Negative flag if sign bit set
+			softSwitchesHelper(eff_addr);
 			break;
 
 		case uint8_t(0x24): // BIT Zero Page
@@ -678,6 +729,7 @@ int Raquette::step(bool verbose) {
 			flag_z = (tmp == 0); // Zero flag if zero
 			flag_v = ((memory[eff_addr] & 0b01000000) != 0); // bit 6 maps to V
 			flag_n = ((memory[eff_addr] & 0b10000000) != 0); // bit 7 maps to N
+			softSwitchesHelper(eff_addr);
 			opbytes = 3;
 			break;
 
@@ -695,6 +747,7 @@ int Raquette::step(bool verbose) {
 			flag_z = (RAQ_ACC == memory[eff_addr]); // Zero flag if equal
 			flag_n = ((tmp & 0b10000000) != 0); // Negative flag if sign bit set
 			flag_c = (RAQ_ACC >= memory[eff_addr]); // Carry flag
+			softSwitchesHelper(eff_addr);
 			break;
 
 		case uint8_t(0xE0): // CPX Immediate
@@ -705,6 +758,7 @@ int Raquette::step(bool verbose) {
 			flag_n = ((tmp & 0b10000000) != 0); // Negative flag if sign bit set
 			flag_c = (RAQ_X >= memory[eff_addr]); // Carry flag
 			opbytes = 2;
+			softSwitchesHelper(eff_addr);
 			break;
 
 		case uint8_t(0xE4): // CPX Zero Page
@@ -727,6 +781,7 @@ int Raquette::step(bool verbose) {
 			flag_n = ((tmp & 0b10000000) != 0); // Negative flag if sign bit set
 			flag_c = (RAQ_X >= memory[eff_addr]); // Carry flag
 			opbytes = 3;
+			softSwitchesHelper(eff_addr);
 			break;
 
 		case uint8_t(0xC0): // CPY Immediate
@@ -737,6 +792,7 @@ int Raquette::step(bool verbose) {
 			flag_n = ((tmp & 0b10000000) != 0); // Negative flag if sign bit set
 			flag_c = (RAQ_Y >= memory[eff_addr]); // Carry flag
 			opbytes = 2;
+			softSwitchesHelper(eff_addr);
 			break;
 
 		case uint8_t(0xC4): // CPY Zero Page
@@ -759,6 +815,7 @@ int Raquette::step(bool verbose) {
 			flag_n = ((tmp & 0b10000000) != 0); // Negative flag if sign bit set
 			flag_c = (RAQ_Y >= memory[eff_addr]); // Carry flag
 			opbytes = 3;
+			softSwitchesHelper(eff_addr);
 			break;
 
 		case uint8_t(0x0A): // ASL Accumulator
@@ -807,9 +864,12 @@ int Raquette::step(bool verbose) {
 			tmp = memory[eff_addr];
 			flag_c = tmp & 0b10000000;
 			tmp <<= 1;
-			memory[eff_addr] = tmp;
 			flag_z = (tmp == 0x0);
 			flag_n = tmp & 0b10000000;
+			if(eff_addr < ROM_LO){
+				memory[eff_addr] = tmp;
+			}
+			softSwitchesHelper(eff_addr);
 			opbytes = 3;
 			break;
 
@@ -822,9 +882,12 @@ int Raquette::step(bool verbose) {
 			tmp = memory[eff_addr];
 			flag_c = tmp & 0b10000000;
 			tmp <<= 1;
-			memory[eff_addr] = tmp;
 			flag_z = (tmp == 0x0);
 			flag_n = tmp & 0b10000000;
+			if(eff_addr < ROM_LO){
+				memory[eff_addr] = tmp;
+			}
+			softSwitchesHelper(eff_addr);
 			opbytes = 3;
 			break;
 
@@ -845,9 +908,12 @@ int Raquette::step(bool verbose) {
 			tmp = memory[eff_addr];
 			flag_c = tmp & 0x1;
 			tmp2 = tmp>>1;
-			memory[eff_addr] = tmp2;
-			flag_z = (memory[eff_addr] == 0x0);
+			flag_z = (tmp2 == 0x0);
 			flag_n = false;
+			if(eff_addr < ROM_LO){
+				memory[eff_addr] = tmp2;
+			}
+			softSwitchesHelper(eff_addr);
 			opbytes = 2;
 			break;
 
@@ -872,9 +938,13 @@ int Raquette::step(bool verbose) {
 			tmp = memory[eff_addr];
 			flag_c = tmp & 0x1;
 			tmp2 = tmp>>1;
-			memory[eff_addr] = tmp2;
-			flag_z = (memory[eff_addr] == 0x0);
+			flag_z = (tmp2 == 0x0);
 			flag_n = false;
+
+			if(eff_addr < ROM_LO){
+				memory[eff_addr] = tmp2;
+			}
+			softSwitchesHelper(eff_addr);
 			opbytes = 3;
 			break;
 
@@ -887,9 +957,12 @@ int Raquette::step(bool verbose) {
 			tmp = memory[eff_addr];
 			flag_c = tmp & 0x1;
 			tmp2 = tmp>>1;
-			memory[eff_addr] = tmp2;
-			flag_z = (memory[eff_addr] == 0x0);
+			flag_z = (tmp2 == 0x0);
 			flag_n = false;
+			if(eff_addr < ROM_LO){
+				memory[eff_addr] = tmp2;
+			}
+			softSwitchesHelper(eff_addr);
 			opbytes = 3;
 			break;
 
@@ -918,7 +991,10 @@ int Raquette::step(bool verbose) {
 			tmp = memory[pc+2]; // tmp is an unsigned int with room for shifts
 			eff_addr = (tmp << 8) + memory[pc+1];
 			assert(eff_addr <= 0xFFFF);
-			memory[eff_addr] = rolHelper(memory[eff_addr]);
+			if(eff_addr < ROM_LO){
+				memory[eff_addr] = rolHelper(memory[eff_addr]);
+			}
+			softSwitchesHelper(eff_addr);
 			opbytes = 3;
 			break;
 
@@ -927,7 +1003,10 @@ int Raquette::step(bool verbose) {
 			tmp = memory[pc+2]; // tmp is an unsigned int with room for shifts
 			eff_addr = (tmp << 8) + memory[pc+1] + RAQ_X;
 			assert(eff_addr <= 0xFFFF);
-			memory[eff_addr] = rolHelper(memory[eff_addr]);
+			if(eff_addr < ROM_LO){
+				memory[eff_addr] = rolHelper(memory[eff_addr]);
+			}
+			softSwitchesHelper(eff_addr);
 			opbytes = 3;
 			break;
 
@@ -956,7 +1035,10 @@ int Raquette::step(bool verbose) {
 			tmp = memory[pc+2]; // tmp is an unsigned int with room for shifts
 			eff_addr = (tmp << 8) + memory[pc+1];
 			assert(eff_addr <= 0xFFFF);
-			memory[eff_addr] = rorHelper(memory[eff_addr]);
+			if(eff_addr < ROM_LO){
+				memory[eff_addr] = rorHelper(memory[eff_addr]);
+			}
+			softSwitchesHelper(eff_addr);
 			opbytes = 3;
 			break;
 
@@ -965,7 +1047,10 @@ int Raquette::step(bool verbose) {
 			tmp = memory[pc+2]; // tmp is an unsigned int with room for shifts
 			eff_addr = (tmp << 8) + memory[pc+1] + RAQ_X;
 			assert(eff_addr <= 0xFFFF);
-			memory[eff_addr] = rorHelper(memory[eff_addr]);
+			if(eff_addr < ROM_LO){
+				memory[eff_addr] = rorHelper(memory[eff_addr]);
+			}
+			softSwitchesHelper(eff_addr);
 			opbytes = 3;
 			break;
 
@@ -984,6 +1069,7 @@ int Raquette::step(bool verbose) {
 			RAQ_ACC = tmp;
 			flag_z = (RAQ_ACC == 0); // Zero flag if zero
 			flag_n = ((RAQ_ACC & 0b10000000) != 0); // Negative flag if sign bit set
+			softSwitchesHelper(eff_addr);
 			break;
 
 		case uint8_t(0x49): // EOR
@@ -1001,6 +1087,7 @@ int Raquette::step(bool verbose) {
 			RAQ_ACC = tmp;
 			flag_z = (RAQ_ACC == 0); // Zero flag if zero
 			flag_n = ((RAQ_ACC & 0b10000000) != 0); // Negative flag if sign bit set
+			softSwitchesHelper(eff_addr);
 			break;
 
 		case uint8_t(0x09): // ORA
@@ -1017,6 +1104,7 @@ int Raquette::step(bool verbose) {
 			RAQ_ACC = tmp;
 			flag_z = (RAQ_ACC == 0); // Zero flag if zero
 			flag_n = ((RAQ_ACC & 0b10000000) != 0); // Negative flag if sign bit set
+			softSwitchesHelper(eff_addr);
 			break;
 
 		case uint8_t(0x85): // STA
@@ -1028,7 +1116,10 @@ int Raquette::step(bool verbose) {
 		case uint8_t(0x91):
 			std::tie(eff_addr, opbytes) = aModeHelper(thisbyte);
 			if(verbose) std::cout << "STA " << std::hex << eff_addr << std::dec << " pc+=" << opbytes << std::endl;
-			memory[eff_addr] = RAQ_ACC;
+			if(eff_addr < ROM_LO){
+				 memory[eff_addr] = RAQ_ACC;
+			}
+			softSwitchesHelper(eff_addr);
 			break;
 
 		case uint8_t(0x4C): // JMP (absolute)
@@ -1074,7 +1165,6 @@ int Raquette::step(bool verbose) {
 			if(verbose) std::cout << "return to " << std::hex << eff_addr << std::dec << std::endl;
 			RAQ_STACK += 2;
 			pc = eff_addr;
-
 			opbytes = 0;
 			break;
 
@@ -1324,8 +1414,6 @@ void Raquette::show_screen(){
 
 	wtimeout(win, 100); // Nonblocking getch
 
-char ch;
-do{
 	// TODO Only print the changes
 	// We will print the rows in memory-order
 	wmove(win, 0, 0);
@@ -1338,10 +1426,9 @@ do{
 		}
 	}
 
-	this->show_regs();
 	wrefresh(win);
 
-	ch = wgetch(win);
+	char ch = wgetch(win);
 	endwin();
 	//std::cout << "Entered " << std::hex << (int) ch << std::dec << std::endl;
 	if(ch != ERR){
@@ -1350,9 +1437,5 @@ do{
 		}else{
 			memory[0xC000] = ch | 0b10000000;
 		}
-	}else{
-		// TODO this patches the key repeat until we have the strobe clear at 0xC010
-		memory[0xC000] &= 0b01111111;
 	}
-}while ((ch != '@') && this->step(true));
 }

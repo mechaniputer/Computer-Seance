@@ -9,6 +9,7 @@ class Raquette: public Computer {
 	std::tuple<int, int> aModeHelper(uint8_t thisbyte);
 	uint8_t rolHelper(uint8_t byte);
 	uint8_t rorHelper(uint8_t byte);
+	void softSwitchesHelper(int eff_addr);
 	void branchHelper();
 	int step(bool verbose = false);
 	void show_regs();

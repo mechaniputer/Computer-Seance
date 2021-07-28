@@ -2,3 +2,9 @@ The Raquette 2 Computer, made by Raquette Computer Corporation, is an 8-bit
 microcomputer equipped with a MOS 6502 CPU. It is considered a low cost machine
 and has been adopted by <name TBD> college as the standard instructional
 machine. Other machines may be used for specific applications however.
+
+The memory map resembles the real-life Apple 2 line, including the peculiar
+memory mapped text mode display.
+
+Locations below address 0xC000 are RAM, giving about 48k. Locations above this
+are either ROM, hardware devices, soft switches, or unused.
