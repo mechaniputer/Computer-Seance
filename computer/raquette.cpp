@@ -1428,7 +1428,20 @@ void Raquette::interactiveSession(){
 				int rowaddr = (0x400 + (i*40) + ((i/3)*8));
 				int col = 0;
 				for(int j=0; j<40; j++){
-					mvwaddch(win, row, col++, RAQ_CHAR(memory[rowaddr+j]));
+					if((memory[rowaddr+j] >= 0x40) && (memory[rowaddr+j] <= 0x7F)){
+						// Blinking character
+						if((numstep%300000) < 200000){
+							mvwaddch(win, row, col, RAQ_CHAR(memory[rowaddr+j]));
+							mvwchgat(win, row, col++, 1, A_STANDOUT, 0, NULL);
+						}else{
+							mvwaddch(win, row, col, RAQ_CHAR(memory[rowaddr+j]));
+							mvwchgat(win, row, col++, 1, A_NORMAL, 0, NULL);
+							//mvwaddch(win, row, col++, ' ');
+						}
+					}else{
+						// Normal character
+						mvwaddch(win, row, col++, RAQ_CHAR(memory[rowaddr+j]));
+					}
 				}
 			}
 
