@@ -1449,7 +1449,7 @@ void Raquette::interactiveSession(){
 
 			ch = wgetch(win);
 			//std::cout << "Entered " << std::hex << (int) ch << std::dec << std::endl;
-			if(ch != ERR){
+			if(ch < 0b10000000){
 				if(ch == 0xA){ // 0xA is line feed, and 0xD is CR. The Apple 2 expects the latter.
 					memory[0xC000] = 0x0D | 0b10000000;
 				}else{
