@@ -1,2 +1,2 @@
 # Computer-Seance
-An immersive text adventure about studying Computer Science at college
+An RPG about studying Computer Science at college. With somewhat thorough simulations of computers.

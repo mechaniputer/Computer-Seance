@@ -63,6 +63,14 @@ Raquette::Raquette(uint8_t *init_contents, int len_contents) {
 	eff_addr = (tmp << 8) + memory[0xFFFC];
 	pc = eff_addr;
 
+	// Totally clear display
+	for(int i=0; i<192; i++){
+		for(int j=0; j<280; j++){
+			dispBuf[i][j].r = 0;
+			dispBuf[i][j].g = 0;
+			dispBuf[i][j].b = 0;
+		}
+	}
 }
 
 // Takes the current byte with the opcode part masked out
@@ -1397,7 +1405,7 @@ void Raquette::show_regs() {
 // Then we wrap onto the first row of the third level and after that there are 8 unused bytes
 // Then we repeat for the second rows of each of the three layers, etc.
 #define RAQ_CHAR(x) (charset[x % 0x40])
-void Raquette::interactiveSession(){
+void Raquette::consoleSession(){
 	// The Apple 2 charset includes the same characters repeated in 4 variations (dark, blinking, etc)
 	// For now we only emulate one variation and map onto it from the other 4 variations using modulo division
 	char charset[0x40] = {
@@ -1449,7 +1457,7 @@ void Raquette::interactiveSession(){
 
 			ch = wgetch(win);
 			//std::cout << "Entered " << std::hex << (int) ch << std::dec << std::endl;
-			if(ch < 0b10000000){
+			if(ch != ERR){
 				if(ch == 0xA){ // 0xA is line feed, and 0xD is CR. The Apple 2 expects the latter.
 					memory[0xC000] = 0x0D | 0b10000000;
 				}else{
@@ -1461,4 +1469,27 @@ void Raquette::interactiveSession(){
 
 	// only endwin when exiting
 	endwin();
+}
+
+// Reads memory, produces (color!) display buffer for SDL to read
+// Screen is 280x192
+// In text mode, characters are 5p wide and 7p tall, padded to 7p x 8p
+// This yields (280/7)=40 char wide, (192/8)=24 char tall
+// The extra padding is 2px on the right and 1px on the bottom.
+// TODO Need cycle counting for char blink
+void Raquette::renderScreen(){
+	// Text Mode
+	for(int i=0; i<24; i++){
+		int rowaddr = (0x400 + (i*40) + ((i/3)*8));
+		for(int j=0; j<40; j++){
+			for(int chary=1; chary<8; chary++){
+				for(int charx=0; charx<5; charx++){
+					char foo = 255*(((charset[(7*((1+memory[rowaddr+j]) % 0x40))-chary])>>(7-charx))&0b1);
+					dispBuf[(i*8)+(chary-1)][(j*7)+charx].r = foo;
+					dispBuf[(i*8)+(chary-1)][(j*7)+charx].g = foo;
+					dispBuf[(i*8)+(chary-1)][(j*7)+charx].b = foo;
+				}
+			}
+		}
+	}
 }

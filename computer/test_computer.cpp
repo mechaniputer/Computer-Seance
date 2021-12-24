@@ -33,8 +33,8 @@ void test_base_computer(){
 // This is a temporary debugging test that expects a proprietary ROM that we cannot not include in the repo.
 // We will have our own FOSS ROM eventually.
 void test_raq_romfile(){
-//	std::ifstream infile("A2ROM.BIN", std::ios::binary | std::ios::in);
-	std::ifstream infile("apple.rom", std::ios::binary | std::ios::in);
+	std::ifstream infile("A2ROM.BIN", std::ios::binary | std::ios::in);
+//	std::ifstream infile("apple.rom", std::ios::binary | std::ios::in);
 	if(!infile){
 		std::cout << "Cannot open ROM file\n";
 		return;
@@ -61,7 +61,7 @@ void test_raq_romfile(){
 	Raquette raquette(raq_rom_arr, 0xFFFF+1);
 
 	raquette.show_regs();
-	raquette.interactiveSession();
+	raquette.consoleSession();
 	raquette.show_regs();
 }
 
@@ -112,8 +112,8 @@ void test_raq_all(){
 
 int main() {
 //	test_base_computer();
-//	test_raq_romfile(); // Loads a 12K ROM file into high mem and runs it
-	test_raq_all(); // Loads a ~13k functional test ROM file to 0x0400 and runs it
+	test_raq_romfile(); // Loads a 12K ROM file into high mem and runs it
+//	test_raq_all(); // Loads a ~13k functional test ROM file to 0x0400 and runs it
 
 	return 0;
 }
