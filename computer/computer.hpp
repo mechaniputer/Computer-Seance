@@ -1,12 +1,5 @@
 #pragma once
 
-// For display buffers
-typedef struct Color {
-	unsigned char r;
-	unsigned char g;
-	unsigned char b;
-} Color;
-
 class Computer {
 	public:
 	int width_bytes, num_words, num_regs, pc;

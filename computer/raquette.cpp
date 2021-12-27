@@ -66,11 +66,11 @@ Raquette::Raquette(uint8_t *init_contents, int len_contents) {
 	// Totally clear display
 	for(int i=0; i<192; i++){
 		for(int j=0; j<280; j++){
-			dispBuf[i][j].r = 0;
-			dispBuf[i][j].g = 0;
-			dispBuf[i][j].b = 0;
+			dispBuf[i][j] = 0;
 		}
 	}
+	text_changes = true; // Force rendering first iteration
+	graphics_changes = true; // Force rendering first iteration
 }
 
 // Takes the current byte with the opcode part masked out
@@ -189,6 +189,15 @@ uint8_t Raquette::rorHelper(uint8_t byte) {
 	flag_n = ((tmp & 0b10000000) != 0);
 	flag_z = (tmp == 0); // Zero flag if zero
 	return tmp;
+}
+
+
+void Raquette::dispHelper(int eff_addr) {
+	if((eff_addr >= 0x0400) && ( eff_addr <= 0x0BFF)){
+		text_changes = true;
+	}else if((eff_addr >= 0x2000) && (eff_addr <= 0x5FFF)){
+		graphics_changes = true;
+	}
 }
 
 // Zero page acceses ignored
@@ -389,16 +398,16 @@ int Raquette::step(bool verbose) {
 			// The next byte is an address. Prepend it with 00.
 			eff_addr = memory[pc+1];
 			memory[eff_addr] = RAQ_X;
-			opbytes = 2;
 			if(verbose) std::cout << "STX zero page " << std::hex << eff_addr << std::dec << " pc+=" << opbytes << std::endl;
+			opbytes = 2;
 			break;
 
 		case uint8_t(0x96): // STX Zero Page, Y
 			// The next byte is an address. Prepend it with 00 and add the contents of the Y register to it.
 			eff_addr = ((memory[pc+1] + RAQ_Y) & 0xFF); // Wrap around if sum of base and reg exceeds 0xFF
 			memory[eff_addr] = RAQ_X;
-			opbytes = 2;
 			if(verbose) std::cout << "STX zero page, Y " << std::hex << eff_addr << std::dec << " pc+=" << opbytes << std::endl;
+			opbytes = 2;
 			break;
 
 		case uint8_t(0x8E): // STX Absolute
@@ -408,8 +417,9 @@ int Raquette::step(bool verbose) {
 				memory[eff_addr] = RAQ_X;
 			}
 			softSwitchesHelper(eff_addr);
-			opbytes = 3;
+			dispHelper(eff_addr);
 			if(verbose) std::cout << "STY Absolute" << std::hex << eff_addr << std::dec << " pc+=" << opbytes << std::endl;
+			opbytes = 3;
 			break;
 
 		case uint8_t(0x84): // STY Zero Page
@@ -418,6 +428,7 @@ int Raquette::step(bool verbose) {
 			memory[eff_addr] = RAQ_Y;
 			opbytes = 2;
 			if(verbose) std::cout << "STY zero page " << std::hex << eff_addr << std::dec << " pc+=" << opbytes << std::endl;
+			// No need to check for text/graphics output in zero page
 			break;
 
 		case uint8_t(0x94): // STY Zero Page, X
@@ -426,6 +437,7 @@ int Raquette::step(bool verbose) {
 			memory[eff_addr] = RAQ_Y;
 			opbytes = 2;
 			if(verbose) std::cout << "STY zero page, X " << std::hex << eff_addr << std::dec << " pc+=" << opbytes << std::endl;
+			// No need to check for text/graphics output in zero page
 			break;
 
 		case uint8_t(0x8C): // STY Absolute
@@ -435,8 +447,9 @@ int Raquette::step(bool verbose) {
 				memory[eff_addr] = RAQ_Y;
 			}
 			softSwitchesHelper(eff_addr);
-			opbytes = 3;
+			dispHelper(eff_addr);
 			if(verbose) std::cout << "STY Absolute" << std::hex << eff_addr << std::dec << " pc+=" << opbytes << std::endl;
+			opbytes = 3;
 			break;
 
 		case uint8_t(0xAA): // TAX
@@ -531,6 +544,7 @@ int Raquette::step(bool verbose) {
 
 			if(eff_addr < ROM_LO){
 				memory[eff_addr] = tmpbyte;
+				dispHelper(eff_addr);
 			}
 			softSwitchesHelper(eff_addr);
 			opbytes = 3;
@@ -548,6 +562,7 @@ int Raquette::step(bool verbose) {
 
 			if(eff_addr < ROM_LO){
 				memory[eff_addr] = tmpbyte;
+				dispHelper(eff_addr);
 			}
 			softSwitchesHelper(eff_addr);
 			opbytes = 3;
@@ -583,6 +598,7 @@ int Raquette::step(bool verbose) {
 
 			if(eff_addr < ROM_LO){
 				memory[eff_addr] = tmpbyte;
+				dispHelper(eff_addr);
 			}
 			softSwitchesHelper(eff_addr);
 			opbytes = 3;
@@ -600,6 +616,7 @@ int Raquette::step(bool verbose) {
 
 			if(eff_addr < ROM_LO){
 				memory[eff_addr] = tmpbyte;
+				dispHelper(eff_addr);
 			}
 			softSwitchesHelper(eff_addr);
 			opbytes = 3;
@@ -877,6 +894,7 @@ int Raquette::step(bool verbose) {
 			flag_n = tmp & 0b10000000;
 			if(eff_addr < ROM_LO){
 				memory[eff_addr] = tmp;
+				dispHelper(eff_addr);
 			}
 			softSwitchesHelper(eff_addr);
 			opbytes = 3;
@@ -895,6 +913,7 @@ int Raquette::step(bool verbose) {
 			flag_n = tmp & 0b10000000;
 			if(eff_addr < ROM_LO){
 				memory[eff_addr] = tmp;
+				dispHelper(eff_addr);
 			}
 			softSwitchesHelper(eff_addr);
 			opbytes = 3;
@@ -952,6 +971,7 @@ int Raquette::step(bool verbose) {
 
 			if(eff_addr < ROM_LO){
 				memory[eff_addr] = tmp2;
+				dispHelper(eff_addr);
 			}
 			softSwitchesHelper(eff_addr);
 			opbytes = 3;
@@ -970,6 +990,7 @@ int Raquette::step(bool verbose) {
 			flag_n = false;
 			if(eff_addr < ROM_LO){
 				memory[eff_addr] = tmp2;
+				dispHelper(eff_addr);
 			}
 			softSwitchesHelper(eff_addr);
 			opbytes = 3;
@@ -1002,6 +1023,7 @@ int Raquette::step(bool verbose) {
 			assert(eff_addr <= 0xFFFF);
 			if(eff_addr < ROM_LO){
 				memory[eff_addr] = rolHelper(memory[eff_addr]);
+				dispHelper(eff_addr);
 			}
 			softSwitchesHelper(eff_addr);
 			opbytes = 3;
@@ -1014,6 +1036,7 @@ int Raquette::step(bool verbose) {
 			assert(eff_addr <= 0xFFFF);
 			if(eff_addr < ROM_LO){
 				memory[eff_addr] = rolHelper(memory[eff_addr]);
+				dispHelper(eff_addr);
 			}
 			softSwitchesHelper(eff_addr);
 			opbytes = 3;
@@ -1046,6 +1069,7 @@ int Raquette::step(bool verbose) {
 			assert(eff_addr <= 0xFFFF);
 			if(eff_addr < ROM_LO){
 				memory[eff_addr] = rorHelper(memory[eff_addr]);
+				dispHelper(eff_addr);
 			}
 			softSwitchesHelper(eff_addr);
 			opbytes = 3;
@@ -1058,6 +1082,7 @@ int Raquette::step(bool verbose) {
 			assert(eff_addr <= 0xFFFF);
 			if(eff_addr < ROM_LO){
 				memory[eff_addr] = rorHelper(memory[eff_addr]);
+				dispHelper(eff_addr);
 			}
 			softSwitchesHelper(eff_addr);
 			opbytes = 3;
@@ -1126,7 +1151,8 @@ int Raquette::step(bool verbose) {
 			std::tie(eff_addr, opbytes) = aModeHelper(thisbyte);
 			if(verbose) std::cout << "STA " << std::hex << eff_addr << std::dec << " pc+=" << opbytes << std::endl;
 			if(eff_addr < ROM_LO){
-				 memory[eff_addr] = RAQ_ACC;
+				memory[eff_addr] = RAQ_ACC;
+				dispHelper(eff_addr);
 			}
 			softSwitchesHelper(eff_addr);
 			break;
@@ -1381,6 +1407,18 @@ int Raquette::step(bool verbose) {
 
 }
 
+
+int Raquette::runMicroSeconds(unsigned int microseconds){
+	// At 1 MHz we do 1 cycle per microsecond
+	// TODO count cycles
+	// Average IPC is 0.43 so as an estimate,
+	unsigned int instructions = (microseconds*0.43);
+	for(unsigned int i=0; i<instructions; i++){
+		if(step(false)) return 1;
+	}
+	return 0;
+}
+
 void Raquette::show_regs() {
 	std::cout << "pc:" << std::hex << pc << std::dec
 		<< "  acc:" << std::hex << (int) RAQ_ACC << std::dec
@@ -1477,19 +1515,25 @@ void Raquette::consoleSession(){
 // This yields (280/7)=40 char wide, (192/8)=24 char tall
 // The extra padding is 2px on the right and 1px on the bottom.
 // TODO Need cycle counting for char blink
-void Raquette::renderScreen(){
+// TODO add force render option
+bool Raquette::renderScreen(){
 	// Text Mode
-	for(int i=0; i<24; i++){
-		int rowaddr = (0x400 + (i*40) + ((i/3)*8));
-		for(int j=0; j<40; j++){
-			for(int chary=1; chary<8; chary++){
-				for(int charx=0; charx<5; charx++){
-					char foo = 255*(((charset[(7*((1+memory[rowaddr+j]) % 0x40))-chary])>>(7-charx))&0b1);
-					dispBuf[(i*8)+(chary-1)][(j*7)+charx].r = foo;
-					dispBuf[(i*8)+(chary-1)][(j*7)+charx].g = foo;
-					dispBuf[(i*8)+(chary-1)][(j*7)+charx].b = foo;
+	if(text_changes){
+		for(int i=0; i<24; i++){
+			int row = (8*(i%3))+(i/3);
+			int rowaddr = (0x400 + (i*40) + ((i/3)*8));
+			for(int col=0; col<40; col++){
+				for(int chary=1; chary<8; chary++){
+					for(int charx=0; charx<5; charx++){
+						char foo = 15*(((charset[(7*(1+(memory[rowaddr+col] % 0x40)))-chary])>>(7-charx))&0b1);
+						dispBuf[(row*8)+(chary-1)][(col*7)+charx] = foo; // 15 (white) or 0 (black)
+					}
 				}
 			}
 		}
+		text_changes = false;
+		return true;
+	}else{
+		return false;
 	}
 }
