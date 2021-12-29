@@ -227,10 +227,6 @@ SDL_TimerID display_timer_id = SDL_AddTimer(TIME_STEP*51, display_callbackfunc, 
 					if(raquette.memory[0xC000] != (' ')){
 						raquette.memory[0xC000]  = (' ' | 0b10000000);
 					}
-				}else if(state[SDL_SCANCODE_0]){
-					if(raquette.memory[0xC000] != ('0')){
-						raquette.memory[0xC000]  = ('0' | 0b10000000);
-					}
 				}else if(state[SDL_SCANCODE_1]){
 					if(raquette.memory[0xC000] != ('1')){
 						raquette.memory[0xC000]  = ('1' | 0b10000000);
@@ -260,12 +256,28 @@ SDL_TimerID display_timer_id = SDL_AddTimer(TIME_STEP*51, display_callbackfunc, 
 						raquette.memory[0xC000]  = ('7' | 0b10000000);
 					}
 				}else if(state[SDL_SCANCODE_8]){
-					if(raquette.memory[0xC000] != ('8')){
-						raquette.memory[0xC000]  = ('8' | 0b10000000);
+					if((raquette.memory[0xC000] != ('8')) && (raquette.memory[0xC000] != ('*'))){
+						if(state[SDL_SCANCODE_RSHIFT] || state[SDL_SCANCODE_LSHIFT]){
+							raquette.memory[0xC000]  = ('*' | 0b10000000);
+						}else{
+							raquette.memory[0xC000]  = ('8' | 0b10000000);
+						}
 					}
 				}else if(state[SDL_SCANCODE_9]){
-					if(raquette.memory[0xC000] != ('9')){
-						raquette.memory[0xC000]  = ('9' | 0b10000000);
+					if((raquette.memory[0xC000] != ('9')) && (raquette.memory[0xC000] != ('('))){
+						if(state[SDL_SCANCODE_RSHIFT] || state[SDL_SCANCODE_LSHIFT]){
+							raquette.memory[0xC000]  = ('(' | 0b10000000);
+						}else{
+							raquette.memory[0xC000]  = ('9' | 0b10000000);
+						}
+					}
+				}else if(state[SDL_SCANCODE_0]){
+					if((raquette.memory[0xC000] != ('0')) && (raquette.memory[0xC000] != (')'))){
+						if(state[SDL_SCANCODE_RSHIFT] || state[SDL_SCANCODE_LSHIFT]){
+							raquette.memory[0xC000]  = (')' | 0b10000000);
+						}else{
+							raquette.memory[0xC000]  = ('0' | 0b10000000);
+						}
 					}
 				}else if(state[SDL_SCANCODE_COMMA]){
 					if(raquette.memory[0xC000] != (',')){
@@ -291,8 +303,12 @@ SDL_TimerID display_timer_id = SDL_AddTimer(TIME_STEP*51, display_callbackfunc, 
 
 
 				}else if(state[SDL_SCANCODE_EQUALS]){
-					if(raquette.memory[0xC000] != ('=')){
-						raquette.memory[0xC000]  = ('=' | 0b10000000);
+					if((raquette.memory[0xC000] != ('=')) && (raquette.memory[0xC000] != ('+'))){
+						if(state[SDL_SCANCODE_RSHIFT] || state[SDL_SCANCODE_LSHIFT]){
+							raquette.memory[0xC000]  = ('+' | 0b10000000);
+						}else{
+							raquette.memory[0xC000]  = ('=' | 0b10000000);
+						}
 					}
 				}else if(state[SDL_SCANCODE_APOSTROPHE]){
 					if((raquette.memory[0xC000] != ('\"')) && (raquette.memory[0xC000] != ('\''))){
@@ -320,13 +336,38 @@ SDL_TimerID display_timer_id = SDL_AddTimer(TIME_STEP*51, display_callbackfunc, 
 				if(raquette.renderScreen()){
 					for(int i=0; i<192; i++){
 						for(int j = 0; j<280; j++){
-							// TODO load RGB from palate of machine
 							if(raquette.dispBuf[i][j] == 0){
-								// Black
-								SDL_SetRenderDrawColor(renderer, 0, 0, 0, 0);
+								SDL_SetRenderDrawColor(renderer, 0, 0, 0, 0); // Black
+							}else if(raquette.dispBuf[i][j] == 1){
+								SDL_SetRenderDrawColor(renderer, 178, 0, 98, 0); // Magenta
+							}else if(raquette.dispBuf[i][j] == 2){
+								SDL_SetRenderDrawColor(renderer, 2, 28, 237, 0); // Dark blue
+							}else if(raquette.dispBuf[i][j] == 3){
+								SDL_SetRenderDrawColor(renderer, 201, 0, 238, 0); // Purple
+							}else if(raquette.dispBuf[i][j] == 4){
+								SDL_SetRenderDrawColor(renderer, 34, 155, 2, 0); // Dark Green
+							}else if(raquette.dispBuf[i][j] == 5){
+								SDL_SetRenderDrawColor(renderer, 103, 114, 120, 0); // Grey 1
+							}else if(raquette.dispBuf[i][j] == 6){
+								SDL_SetRenderDrawColor(renderer, 21, 177, 234, 0); // Medium blue
+							}else if(raquette.dispBuf[i][j] == 7){
+								SDL_SetRenderDrawColor(renderer, 133, 135, 236, 0); // Light blue
+							}else if(raquette.dispBuf[i][j] == 8){
+								SDL_SetRenderDrawColor(renderer, 84, 88, 1, 0); // Brown
+							}else if(raquette.dispBuf[i][j] == 9){
+								SDL_SetRenderDrawColor(renderer, 225, 51, 0, 0); // Orange
+							}else if(raquette.dispBuf[i][j] == 10){
+								SDL_SetRenderDrawColor(renderer, 111, 109, 112, 0); // Grey 2
+							}else if(raquette.dispBuf[i][j] == 11){
+								SDL_SetRenderDrawColor(renderer, 224, 69, 231, 0); // Pink
+							}else if(raquette.dispBuf[i][j] == 12){
+								SDL_SetRenderDrawColor(renderer, 68, 246, 0, 0); // Green
+							}else if(raquette.dispBuf[i][j] == 13){
+								SDL_SetRenderDrawColor(renderer, 209, 216, 0, 0); // Yellow
+							}else if(raquette.dispBuf[i][j] == 14){
+								SDL_SetRenderDrawColor(renderer, 72, 254, 117, 0); // Aqua
 							}else{
-								// White
-								SDL_SetRenderDrawColor(renderer, 255, 255, 255, 0);
+								SDL_SetRenderDrawColor(renderer, 238, 231, 238, 0); // White
 							}
 							bigPixel(renderer, 1+j, 1+i, (WINDOW_WIDTH/(40*7)));
 						}

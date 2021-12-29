@@ -5,8 +5,6 @@ class Raquette: public Computer {
 	// 7 processor status flags:
 	bool flag_c, flag_z, flag_i, flag_d, flag_b, flag_v, flag_n;
 	char dispBuf[192][280];
-	bool text_changes;
-	bool graphics_changes;
 	Raquette(uint8_t *init_contents = nullptr, int len_contents = 0);
 	// TODO reset (for resetting regs and pc)
 	std::tuple<int, int> aModeHelper(uint8_t thisbyte);
@@ -20,6 +18,9 @@ class Raquette: public Computer {
 	void show_regs();
 	void consoleSession();
 	bool renderScreen();
+
+	bool screen_update;
+	bool graphics_mode;
 
 	// Rows are in reverse order
 	const uint8_t charset[0x40*7] = {

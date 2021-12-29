@@ -69,8 +69,8 @@ Raquette::Raquette(uint8_t *init_contents, int len_contents) {
 			dispBuf[i][j] = 0;
 		}
 	}
-	text_changes = true; // Force rendering first iteration
-	graphics_changes = true; // Force rendering first iteration
+	screen_update = true; // Force rendering first iteration
+	graphics_mode = false; // Start in text mode
 }
 
 // Takes the current byte with the opcode part masked out
@@ -192,11 +192,13 @@ uint8_t Raquette::rorHelper(uint8_t byte) {
 }
 
 
+// Records display updates to force redraw
+// TODO Partition screen for efficiency
+// TODO monitor changes to graphics region too
+// TODO consider current mode
 void Raquette::dispHelper(int eff_addr) {
 	if((eff_addr >= 0x0400) && ( eff_addr <= 0x0BFF)){
-		text_changes = true;
-	}else if((eff_addr >= 0x2000) && (eff_addr <= 0x5FFF)){
-		graphics_changes = true;
+		screen_update = true;
 	}
 }
 
@@ -208,6 +210,23 @@ void Raquette::softSwitchesHelper(int eff_addr){
 	if((eff_addr <= 0xC010) && (eff_addr > 0xC000)){
 		// Input strobe clear
 		memory[0xC000] = (memory[0xC000] & 0b01111111); // Clear bit 7 of 0xC000
+	}
+	else if(eff_addr == 0xc050){
+		// GR
+		graphics_mode = true;
+		screen_update = true;
+	}else if(eff_addr == 0xc051){
+		// TEXT
+		graphics_mode = false;
+		screen_update = true;
+	}else if(eff_addr == 0xc052){
+		// MIXCLR (full screen)
+	}else if(eff_addr == 0xc053){
+		// MIXSET (split screen)
+	}else if(eff_addr == 0xc056){
+		// LO-RES
+	}else if(eff_addr == 0xc057){
+		// HI_RES
 	}
 	return;
 }
@@ -1517,21 +1536,38 @@ void Raquette::consoleSession(){
 // TODO Need cycle counting for char blink
 // TODO add force render option
 bool Raquette::renderScreen(){
-	// Text Mode
-	if(text_changes){
+	if(screen_update){
 		for(int i=0; i<24; i++){
 			int row = (8*(i%3))+(i/3);
 			int rowaddr = (0x400 + (i*40) + ((i/3)*8));
 			for(int col=0; col<40; col++){
-				for(int chary=1; chary<8; chary++){
-					for(int charx=0; charx<5; charx++){
-						char foo = 15*(((charset[(7*(1+(memory[rowaddr+col] % 0x40)))-chary])>>(7-charx))&0b1);
-						dispBuf[(row*8)+(chary-1)][(col*7)+charx] = foo; // 15 (white) or 0 (black)
+				if((!graphics_mode) || (row>19)){ // TODO handle full/split modes here
+					// Text Mode
+					for(int chary=1; chary<8; chary++){
+						for(int charx=0; charx<5; charx++){
+							char foo = 15*(((charset[(7*(1+(memory[rowaddr+col] % 0x40)))-chary])>>(7-charx))&0b1);
+							dispBuf[(row*8)+(chary-1)][(col*7)+charx] = foo; // 15 (white) or 0 (black)
+						}
+						for(int charx=5; charx<7; charx++){
+							dispBuf[(row*8)+(chary-1)][(col*7)+charx] = 0; // Clear last 2 pixels of each row
+						}
+					}
+					for(int charx=0; charx<7; charx++){
+						dispBuf[(row*8)+(8-1)][(col*7)+charx] = 0; // Clear last extra row
+					}
+				}else{
+					// Graphics Mode
+					int topColor = (memory[rowaddr+col]>>4) & 0x0f;
+					int botColor = (memory[rowaddr+col] & 0x0f);
+					for(int blocky=1; blocky<9; blocky++){
+						for(int blockx=0; blockx<7; blockx++){
+							dispBuf[(row*8)+(blocky-1)][(col*7)+blockx] = (blocky < 5 ? botColor : topColor);
+						}
 					}
 				}
 			}
 		}
-		text_changes = false;
+		screen_update = false;
 		return true;
 	}else{
 		return false;
