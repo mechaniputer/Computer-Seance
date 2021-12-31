@@ -21,6 +21,9 @@ class Raquette: public Computer {
 
 	bool screen_update;
 	bool graphics_mode;
+	bool full_screen;
+	bool page_two;
+	bool hi_res;
 
 	// Rows are in reverse order
 	const uint8_t charset[0x40*7] = {

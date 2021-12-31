@@ -71,6 +71,9 @@ Raquette::Raquette(uint8_t *init_contents, int len_contents) {
 	}
 	screen_update = true; // Force rendering first iteration
 	graphics_mode = false; // Start in text mode
+	full_screen = true; // Default to full screen mode
+	page_two = false; // Default to page 1
+	hi_res = false; // Default to low res
 }
 
 // Takes the current byte with the opcode part masked out
@@ -197,7 +200,7 @@ uint8_t Raquette::rorHelper(uint8_t byte) {
 // TODO monitor changes to graphics region too
 // TODO consider current mode
 void Raquette::dispHelper(int eff_addr) {
-	if((eff_addr >= 0x0400) && ( eff_addr <= 0x0BFF)){
+	if(((eff_addr >= 0x0400) && ( eff_addr <= 0x0BFF)) || ((eff_addr >= 0x2000) && ( eff_addr <= 0x5fff))){
 		screen_update = true;
 	}
 }
@@ -221,12 +224,22 @@ void Raquette::softSwitchesHelper(int eff_addr){
 		screen_update = true;
 	}else if(eff_addr == 0xc052){
 		// MIXCLR (full screen)
+		full_screen = true;
 	}else if(eff_addr == 0xc053){
 		// MIXSET (split screen)
+		full_screen = false;
+	}else if(eff_addr == 0xc054){
+		// TXTPAGE1
+		page_two = false;
+	}else if(eff_addr == 0xc055){
+		// TXTPAGE2
+		page_two = true;
 	}else if(eff_addr == 0xc056){
 		// LO-RES
+		hi_res = false;
 	}else if(eff_addr == 0xc057){
 		// HI_RES
+		hi_res = true;
 	}
 	return;
 }
@@ -1536,12 +1549,16 @@ void Raquette::consoleSession(){
 // TODO Need cycle counting for char blink
 // TODO add force render option
 bool Raquette::renderScreen(){
+	int page_base = (page_two ? 0x800 : 0x400);
+	int hires_base = (page_two? 0x4000 : 0x2000);
+
 	if(screen_update){
 		for(int i=0; i<24; i++){
 			int row = (8*(i%3))+(i/3);
-			int rowaddr = (0x400 + (i*40) + ((i/3)*8));
+			int rowaddr = (page_base + (i*40) + ((i/3)*8));
 			for(int col=0; col<40; col++){
-				if((!graphics_mode) || (row>19)){ // TODO handle full/split modes here
+				// If not graphics mode, or if we are printing the text lines for split mode
+				if((!graphics_mode) || ((!full_screen)&&(row>19))){
 					// Text Mode
 					for(int chary=1; chary<8; chary++){
 						for(int charx=0; charx<5; charx++){
@@ -1555,8 +1572,26 @@ bool Raquette::renderScreen(){
 					for(int charx=0; charx<7; charx++){
 						dispBuf[(row*8)+(8-1)][(col*7)+charx] = 0; // Clear last extra row
 					}
+				}else if(hi_res){
+					// FIXME This needs to print 8 rows at a time
+					// HI-RES graphics
+					// We have a page of 8192 bytes starting at hires_base
+					// Each byte describes 7 "dots", which become 3.5 pixels
+					// We get 140 pixels per row, so a row is (140/3.5) = 40 bytes
+					// We have 192 rows, so we use 7680 bytes. The rest is holes.
+					// 40 bytes per row. Holes are 8 bytes.
+					for(int row=0; row<7; row++){
+						for(int block=0; block<40; block++){
+							// 8th bit is the palate. Ignoring it for now.
+							for (int j=0; j<7; j++){
+								// FIXME only works for first 8 rows. Need to wrap around to beginning again for 9th row (row 8)
+								int dot = (((memory[hires_base+(1024*row)+block]) >> j) & 0x1);
+								dispBuf[row][(block*7)+j] = dot*7; // TODO color, byte boundary
+							}
+						}
+					}
 				}else{
-					// Graphics Mode
+					// LO-RES graphics
 					int topColor = (memory[rowaddr+col]>>4) & 0x0f;
 					int botColor = (memory[rowaddr+col] & 0x0f);
 					for(int blocky=1; blocky<9; blocky++){
