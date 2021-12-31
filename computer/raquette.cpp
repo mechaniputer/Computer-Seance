@@ -1431,6 +1431,7 @@ int Raquette::step(bool verbose) {
 
 		default:
 			std::cout << "Undefined instruction:" << std::hex << (int) thisbyte << std::dec << std::endl;
+			pc++;
 			return 1;
 			break;
 	}

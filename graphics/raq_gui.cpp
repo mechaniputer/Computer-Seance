@@ -120,8 +120,12 @@ SDL_TimerID display_timer_id = SDL_AddTimer(TIME_STEP*51, display_callbackfunc, 
 						raquette.memory[0xC000]  = ('A' | 0b10000000);
 					}
 				}else if(state[SDL_SCANCODE_B]){
-					if(raquette.memory[0xC000] != ('B')){
-						raquette.memory[0xC000]  = ('B' | 0b10000000);
+					if((raquette.memory[0xC000] != ('B')) && (raquette.memory[0xC000] != (0x02))){
+						if((state[SDL_SCANCODE_LCTRL]) || state[SDL_SCANCODE_RCTRL]){
+							raquette.memory[0xC000]  = (0x02 | 0b10000000);
+						}else{
+							raquette.memory[0xC000]  = ('B' | 0b10000000);
+						}
 					}
 				}else if(state[SDL_SCANCODE_C]){
 					if((raquette.memory[0xC000] != ('C')) && (raquette.memory[0xC000] != (0x03))){
@@ -279,6 +283,16 @@ SDL_TimerID display_timer_id = SDL_AddTimer(TIME_STEP*51, display_callbackfunc, 
 							raquette.memory[0xC000]  = ('0' | 0b10000000);
 						}
 					}
+
+				}else if(state[SDL_SCANCODE_MINUS]){
+					if((raquette.memory[0xC000] != ('-')) && (raquette.memory[0xC000] != ('_'))){
+						if(state[SDL_SCANCODE_RSHIFT] || state[SDL_SCANCODE_LSHIFT]){
+							raquette.memory[0xC000]  = ('_' | 0b10000000);
+						}else{
+							raquette.memory[0xC000]  = ('-' | 0b10000000);
+						}
+					}
+
 				}else if(state[SDL_SCANCODE_COMMA]){
 					if(raquette.memory[0xC000] != (',')){
 						raquette.memory[0xC000]  = (',' | 0b10000000);
