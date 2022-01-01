@@ -1554,9 +1554,9 @@ bool Raquette::renderScreen(){
 	int hires_base = (page_two? 0x4000 : 0x2000);
 
 	if(screen_update){
-		for(int i=0; i<24; i++){
-			int row = (8*(i%3))+(i/3);
-			int rowaddr = (page_base + (i*40) + ((i/3)*8));
+		for(int memrow=0; memrow<24; memrow++){
+			int row = (8*(memrow%3))+(memrow/3);
+			int rowaddr = (page_base + (memrow*40) + ((memrow/3)*8));
 			for(int col=0; col<40; col++){
 				// If not graphics mode, or if we are printing the text lines for split mode
 				if((!graphics_mode) || ((!full_screen)&&(row>19))){
@@ -1573,25 +1573,34 @@ bool Raquette::renderScreen(){
 					for(int charx=0; charx<7; charx++){
 						dispBuf[(row*8)+(8-1)][(col*7)+charx] = 0; // Clear last extra row
 					}
-				}else if(hi_res){
-					// FIXME This needs to print 8 rows at a time
+				}else if(hi_res && (col%2 == 0)){ // Print 2 char widths at a time (blocks of 14x8)
 					// HI-RES graphics
-					// We have a page of 8192 bytes starting at hires_base
-					// Each byte describes 7 "dots", which become 3.5 pixels
-					// We get 140 pixels per row, so a row is (140/3.5) = 40 bytes
-					// We have 192 rows, so we use 7680 bytes. The rest is holes.
-					// 40 bytes per row. Holes are 8 bytes.
-					for(int row=0; row<7; row++){
-						for(int block=0; block<40; block++){
-							// 8th bit is the palate. Ignoring it for now.
-							for (int j=0; j<7; j++){
-								// FIXME only works for first 8 rows. Need to wrap around to beginning again for 9th row (row 8)
-								int dot = (((memory[hires_base+(1024*row)+block]) >> j) & 0x1);
-								dispBuf[row][(block*7)+j] = dot*7; // TODO color, byte boundary
+					int rowaddr = hires_base + ((row%8)*128) + (row/8)*40; // Steps of 128, interleaved in groups of 8
+					for(int line=0; line<8; line++){ // 8 lines per char row
+						int dots[14];
+						for(int i=0; i<7; i++){
+							dots[i] = (memory[rowaddr+(1024*line)+(col)] >> i) & 0b1; // first byte 3.5 pixels
+							dots[i+7] = (memory[rowaddr+(1024*line)+(col)+1] >> i) & 0b1; // second byte 3.5 pixels
+						}
+						// join two chars and print 14 pixels per line
+						for (int pixel=0; pixel<7; pixel++){
+							//int dot = (((memory[rowaddr+(1024*line)+col]) >> pixel) & 0b1);
+							//dispBuf[(8*row)+line][(col*7)+pixel] = dot*7;
+							int color;
+							if(dots[pixel*2] && dots[(pixel*2)+1]){
+								color=15; // white
+							}else if(!dots[pixel*2] && dots[(pixel*2)+1]){
+								color = 4; // TODO
+							}else if(dots[pixel*2] && !dots[(pixel*2)+1]){
+								color = 5; // TODO
+							}else{
+								color = 0; // black
 							}
+							dispBuf[(8*row)+line][(col*7)+(pixel*2)] = dots[pixel*2] * color;
+							dispBuf[(8*row)+line][(col*7)+(pixel*2)+1] = dots[(pixel*2)+1] * color;
 						}
 					}
-				}else{
+				}else if(!hi_res){
 					// LO-RES graphics
 					int topColor = (memory[rowaddr+col]>>4) & 0x0f;
 					int botColor = (memory[rowaddr+col] & 0x0f);
