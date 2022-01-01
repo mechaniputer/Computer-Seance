@@ -332,6 +332,15 @@ SDL_TimerID display_timer_id = SDL_AddTimer(TIME_STEP*51, display_callbackfunc, 
 							raquette.memory[0xC000]  = ('\'' | 0b10000000);
 						}
 					}
+				}else if(state[SDL_SCANCODE_SEMICOLON]){
+					if((raquette.memory[0xC000] != (';')) && (raquette.memory[0xC000] != (':'))){
+						if(state[SDL_SCANCODE_RSHIFT] || state[SDL_SCANCODE_LSHIFT]){
+							raquette.memory[0xC000]  = (':' | 0b10000000);
+						}else{
+							raquette.memory[0xC000]  = (';' | 0b10000000);
+						}
+					}
+
 				}else if(state[SDL_SCANCODE_BACKSPACE]){
 					if(raquette.memory[0xC000] != (0x08)){
 						raquette.memory[0xC000]  = (0x08 | 0b10000000);
@@ -344,12 +353,13 @@ SDL_TimerID display_timer_id = SDL_AddTimer(TIME_STEP*51, display_callbackfunc, 
 				}
 			// Steps callback
 			}else if(event.user.code==1){
-			raquette.runMicroSeconds(TIME_STEP*CPU_FACTOR*1000);
+				raquette.runMicroSeconds(TIME_STEP*CPU_FACTOR*1000);
 			// Display Callback
 			}else if(event.user.code==2){
 				if(raquette.renderScreen()){
 					for(int i=0; i<192; i++){
 						for(int j = 0; j<280; j++){
+							// LO-RES Colors
 							if(raquette.dispBuf[i][j] == 0){
 								SDL_SetRenderDrawColor(renderer, 0, 0, 0, 0); // Black
 							}else if(raquette.dispBuf[i][j] == 1){
@@ -380,8 +390,19 @@ SDL_TimerID display_timer_id = SDL_AddTimer(TIME_STEP*51, display_callbackfunc, 
 								SDL_SetRenderDrawColor(renderer, 209, 216, 0, 0); // Yellow
 							}else if(raquette.dispBuf[i][j] == 14){
 								SDL_SetRenderDrawColor(renderer, 72, 254, 117, 0); // Aqua
-							}else{
+							}else if(raquette.dispBuf[i][j] == 15){
 								SDL_SetRenderDrawColor(renderer, 238, 231, 238, 0); // White
+							// HI-RES Colors
+							}else if(raquette.dispBuf[i][j] == 16){
+								SDL_SetRenderDrawColor(renderer, 32, 192, 0, 0); // Green
+							}else if(raquette.dispBuf[i][j] == 17){
+								SDL_SetRenderDrawColor(renderer, 240, 80, 0, 0); // Orange
+							}else if(raquette.dispBuf[i][j] == 18){
+								SDL_SetRenderDrawColor(renderer, 160, 0, 255, 0); // Violet
+							}else if(raquette.dispBuf[i][j] == 19){
+								SDL_SetRenderDrawColor(renderer, 0, 128, 255, 0); // Blue
+							}else{
+								SDL_SetRenderDrawColor(renderer, 0, 0, 0, 0); // Should not happen, but just in case, use black
 							}
 							bigPixel(renderer, 1+j, 1+i, (WINDOW_WIDTH/(40*7)));
 						}

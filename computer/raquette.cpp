@@ -1582,17 +1582,16 @@ bool Raquette::renderScreen(){
 							dots[i] = (memory[rowaddr+(1024*line)+(col)] >> i) & 0b1; // first byte 3.5 pixels
 							dots[i+7] = (memory[rowaddr+(1024*line)+(col)+1] >> i) & 0b1; // second byte 3.5 pixels
 						}
+						int palate = (memory[rowaddr+(1024*line)+(col)] >> 7) & 0b1; // TODO need palate of second byte?
 						// join two chars and print 14 pixels per line
 						for (int pixel=0; pixel<7; pixel++){
-							//int dot = (((memory[rowaddr+(1024*line)+col]) >> pixel) & 0b1);
-							//dispBuf[(8*row)+line][(col*7)+pixel] = dot*7;
 							int color;
 							if(dots[pixel*2] && dots[(pixel*2)+1]){
 								color=15; // white
 							}else if(!dots[pixel*2] && dots[(pixel*2)+1]){
-								color = 4; // TODO
+								color = (palate ? 17 : 16); // Green or Orange
 							}else if(dots[pixel*2] && !dots[(pixel*2)+1]){
-								color = 5; // TODO
+								color = (palate ? 19 : 18); // Violet or Blue
 							}else{
 								color = 0; // black
 							}
