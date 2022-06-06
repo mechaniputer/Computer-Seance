@@ -1550,10 +1550,10 @@ void Raquette::consoleSession(){
 // TODO Need cycle counting for char blink
 // TODO add force render option
 bool Raquette::renderScreen(){
-	int page_base = (page_two ? 0x800 : 0x400);
-	int hires_base = (page_two? 0x4000 : 0x2000);
 
 	if(screen_update){
+		int page_base = (page_two ? 0x800 : 0x400);
+		int hires_base = (page_two? 0x4000 : 0x2000);
 		for(int memrow=0; memrow<24; memrow++){
 			int row = (8*(memrow%3))+(memrow/3);
 			int rowaddr = (page_base + (memrow*40) + ((memrow/3)*8));
@@ -1575,6 +1575,9 @@ bool Raquette::renderScreen(){
 					}
 				}else if(hi_res && (col%2 == 0)){ // Print 2 char widths at a time (blocks of 14x8)
 					// HI-RES graphics
+					// FIXME There is still a possible inaccuracy here
+					//       Namely, itdoes not produce white pixels on odd adjacencies
+					//       I'm actually not sure if this is a bug yet (should check real hardware)
 					int rowaddr = hires_base + ((row%8)*128) + (row/8)*40; // Steps of 128, interleaved in groups of 8
 					for(int line=0; line<8; line++){ // 8 lines per char row
 						int dots[14];
@@ -1582,21 +1585,26 @@ bool Raquette::renderScreen(){
 							dots[i] = (memory[rowaddr+(1024*line)+(col)] >> i) & 0b1; // first byte 3.5 pixels
 							dots[i+7] = (memory[rowaddr+(1024*line)+(col)+1] >> i) & 0b1; // second byte 3.5 pixels
 						}
-						int palate = (memory[rowaddr+(1024*line)+(col)] >> 7) & 0b1; // TODO need palate of second byte?
+						int palate1 = (memory[rowaddr+(1024*line)+(col)] >> 7) & 0b1;
+						int palate2 = (memory[rowaddr+(1024*line)+(col+1)] >> 7) & 0b1;
 						// join two chars and print 14 pixels per line
 						for (int pixel=0; pixel<7; pixel++){
-							int color;
+							int color1, color2;
 							if(dots[pixel*2] && dots[(pixel*2)+1]){
-								color=15; // white
+								color1=15; // white
+								color2=15; // white
 							}else if(!dots[pixel*2] && dots[(pixel*2)+1]){
-								color = (palate ? 17 : 16); // Green or Orange
+								color1 = (palate1 ? 17 : 16); // Green or Orange
+								color2 = (palate2 ? 17 : 16); // Green or Orange
 							}else if(dots[pixel*2] && !dots[(pixel*2)+1]){
-								color = (palate ? 19 : 18); // Violet or Blue
+								color1 = (palate1 ? 19 : 18); // Violet or Blue
+								color2 = (palate2 ? 19 : 18); // Violet or Blue
 							}else{
-								color = 0; // black
+								color1 = 0; // black
+								color2 = 0; // black
 							}
-							dispBuf[(8*row)+line][(col*7)+(pixel*2)] = dots[pixel*2] * color;
-							dispBuf[(8*row)+line][(col*7)+(pixel*2)+1] = dots[(pixel*2)+1] * color;
+							dispBuf[(8*row)+line][(col*7)+(pixel*2)] = dots[pixel*2] * ((pixel > 3) ? color2 : color1);
+							dispBuf[(8*row)+line][(col*7)+(pixel*2)+1] = dots[(pixel*2)+1] * ((pixel > 2) ? color2 : color1);
 						}
 					}
 				}else if(!hi_res){

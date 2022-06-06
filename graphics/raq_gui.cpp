@@ -62,7 +62,8 @@ int main(void) {
 
 	// TODO Place this in class Raquette
 //	std::ifstream infile("../computer/A2ROM.BIN", std::ios::binary | std::ios::in);
-	std::ifstream infile("../computer/apple.rom", std::ios::binary | std::ios::in);
+//	std::ifstream infile("../computer/apple.rom", std::ios::binary | std::ios::in);
+	std::ifstream infile("../software/raquette/rom/raq_rom.bin", std::ios::binary | std::ios::in);
 	if(!infile){
 		std::cout << "Cannot open ROM file\n";
 		exit(0);
@@ -81,8 +82,10 @@ int main(void) {
 		raq_rom_arr[i] = 0x00; // Zero low mem
 	}
 	for (unsigned i=0; i < length; i++) {
-		raq_rom_arr[i+0xD000] = buffer[i];
+//		raq_rom_arr[i+0xD000] = buffer[i];
+		raq_rom_arr[1+i+(0xFFFF-length)] = buffer[i];
 	}
+
 
 	delete [] buffer;
 

@@ -1,0 +1,56 @@
+; Copyright 2022 Alan Beadle
+; Licensed under GPLv3 or later
+; Monitor ROM for (fictional) Raquette 2 Computer
+
+	.segment "OS"
+
+reset:
+	cld
+	ldx #0 ; Immediate 0
+
+loop:
+	lda hello,x  ; Absolute,X
+	sta $0400,x  ; Absolute,X
+	inx
+	cpx #13      ; num chars to print
+	beq keybrd
+	jmp loop
+
+keybrd:
+	lda $C000    ; bit 7 indicates keypress (and sets N flag)
+	bmi printchar
+	jmp keybrd
+
+printchar:
+	sta $0400,x
+	lda $C010 ; clear strobe
+	inx
+	cpx #40
+	bne skip
+	ldx #0
+	; TODO Find address of next line
+skip:
+	jsr delay
+	jmp keybrd
+
+; Currently not needed since emulator frontend does not support key repeat yet
+delay:
+	ldy #255
+deloop:
+	dey
+	bne deloop
+	rts
+
+nmi:
+	jmp nmi
+
+irq_brk:
+	jmp irq_brk
+
+hello:
+	.byte "HELLO, WORLD! "
+
+	.segment "VECTORS"
+	.word nmi
+	.word reset
+	.word irq_brk

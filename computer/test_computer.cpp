@@ -35,7 +35,8 @@ void test_base_computer(){
 void test_raq_romfile(){
 //	std::ifstream infile("./software/raquette/OUT.BIN", std::ios::binary | std::ios::in);
 //	std::ifstream infile("A2ROM.BIN", std::ios::binary | std::ios::in);
-	std::ifstream infile("apple.rom", std::ios::binary | std::ios::in);
+//	std::ifstream infile("apple.rom", std::ios::binary | std::ios::in);
+	std::ifstream infile("../software/raquette/rom/raq_rom.bin", std::ios::binary | std::ios::in);
 	if(!infile){
 		std::cout << "Cannot open ROM file\n";
 		return;
@@ -53,6 +54,7 @@ void test_raq_romfile(){
 	for (unsigned i=0; i < 0xD000; i++) {
 		raq_rom_arr[i] = 0x00; // Zero low mem
 	}
+	// TODO merge this functionality into raquette class
 	for (unsigned i=0; i < length; i++) {
 //		raq_rom_arr[i+0xD000] = buffer[i];
 		raq_rom_arr[1+i+(0xFFFF-length)] = buffer[i];
@@ -65,9 +67,11 @@ void test_raq_romfile(){
 	raquette.show_regs();
 	raquette.consoleSession();
 //	while (!raquette.step()) {
+//	for(int erg =0; erg<5; erg++){
+//		raquette.step(true);
 //		raquette.show_regs();
 //	}
-	raquette.show_regs();
+//	raquette.show_regs();
 }
 
 void test_raq_all(){
