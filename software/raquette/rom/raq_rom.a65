@@ -2,36 +2,147 @@
 ; Licensed under GPLv3 or later
 ; Monitor ROM for (fictional) Raquette 2 Computer
 
+; Zero page registers locations:
+BASL = $0   ; base low
+BASH = $1   ; base high
+PREVL = $2   ; prev low
+PREVH = $3   ; prev high
+CURROW = $4 ; Cursor row number (0-23)
+CURCOL = $5 ; Cursor row number (0-39)
+
+
 	.segment "OS"
+
+; Character constants:
+a_cr = $0d
+a_sp = $20
+
+
+; Note, there are more efficient ways to do this, but they are under copyright
+; Operand is in zero page location CURROW
+getrow:
+	lda #$0
+	sta BASL
+	lda CURROW
+rowloop:           ; Up to 3 iterations to find region offset (which third of the screen we are at)
+	cmp #8
+	bmi table
+	sbc #8
+	pha
+	lda BASL       ; add $28 to BASL (no carry needed)
+	clc
+	adc #$28
+	sta BASL
+	pla
+	jmp rowloop
+table:             ; Uses scrntbl to get row addr
+	asl A          ; Table entries are 2 bytes
+	tay            ; Y contains index into table
+	lda scrntbl,Y  ; Low byte
+	clc
+	adc BASL       ; Add screen region offset from above
+	sta BASL
+	lda #0         ; We need to keep the carry bit
+	iny
+	adc scrntbl,Y  ; High byte
+	sta BASH
+	ldy #0
+	rts
+
+
+blank: ; blank entire screen
+	ldx #23
+	stx CURROW
+bloop: ; blank entire screen
+	txa
+	jsr getrow ; Takes row number in A, places row base addr in zero page
+	jsr blrow ; Blanks row at address BASL
+	dec CURROW
+	ldx CURROW
+	bpl bloop
+	rts
+
+blrow: ; With base address in zero page (BASL), clear all 40 columns of the row
+	ldy #40
+	lda #a_sp
+blrowloop:
+	sta (BASL),y
+	dey
+	bpl blrowloop
+	rts
+
+newline:          ; Copy all lines up, starting at the top
+	lda #0        ; Destination row
+	sta CURROW
+	lda #$00
+	sta PREVL
+	lda #$04
+	sta PREVH     ; Now PREVL/H holds address of first destination row
+scrolloop:
+	inc CURROW
+	lda CURROW
+	jsr getrow    ; Now we are ready to do the copy for this row
+	ldy #39       ; Will copy right to left
+copyloop:
+	lda (BASL),y
+	sta (PREVL),y
+	dey
+	bpl copyloop
+	lda CURROW
+	cmp #23
+	beq donescroll
+	lda BASL       ; Not done, more rows to copy
+	sta PREVL
+	lda BASH
+	sta PREVH      ; Old source is new dest
+	jmp scrolloop
+donescroll:
+	lda #$07
+	sta BASH
+	lda #$D0
+	sta BASL
+	jsr blrow      ; blank last row
+	ldx #0 ;
+	stx CURCOL
+	rts
 
 reset:
 	cld
-	ldx #0 ; Immediate 0
-
-loop:
-	lda hello,x  ; Absolute,X
-	sta $0400,x  ; Absolute,X
-	inx
-	cpx #13      ; num chars to print
-	beq keybrd
-	jmp loop
-
+	ldx #0
+	stx CURCOL
+	jsr blank
+	ldx #10      ; num chars to print minus 1
+greeting:
+	lda hello,x
+	sta $0636,x
+	dex
+	bpl greeting
 keybrd:
-	lda $C000    ; bit 7 indicates keypress (and sets N flag)
-	bmi printchar
-	jmp keybrd
+	bit $C000    ; bit 7 indicates keypress (and sets N flag)
+	bpl keybrd
+	lda $C000
+	and #$3F     ; Delete 6th+7th bits
+	cmp #a_cr    ; check if CR
+	bne kb_a
+	jsr newline
+	bit $C010    ; Clear strobe
+	jmp keybrd   ; loop
+kb_a:
+	jsr printchar
+	bit $C010    ; Clear strobe
+	jmp keybrd   ; loop
 
 printchar:
-	sta $0400,x
-	lda $C010 ; clear strobe
+	ldx CURCOL
+	sta $07D0,x  ; store in last row at cursor
 	inx
+	stx CURCOL
 	cpx #40
-	bne skip
-	ldx #0
-	; TODO Find address of next line
-skip:
+	bne pc_a
+	jsr newline
+pc_a:
 	jsr delay
-	jmp keybrd
+	rts
 
 ; Currently not needed since emulator frontend does not support key repeat yet
 delay:
@@ -48,7 +159,17 @@ irq_brk:
 	jmp irq_brk
 
 hello:
-	.byte "HELLO, WORLD! "
+	.byte "RAQUETTE II"
+
+scrntbl:
+	.byte $00, $04
+	.byte $80, $04
+	.byte $00, $05
+	.byte $80, $05
+	.byte $00, $06
+	.byte $80, $06
+	.byte $00, $07
+	.byte $80, $07
 
 	.segment "VECTORS"
 	.word nmi
