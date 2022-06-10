@@ -423,19 +423,6 @@ SDL_TimerID display_timer_id = SDL_AddTimer(TIME_STEP*51, display_callbackfunc, 
 			quit = true;
 			break;
 		}
-/*		}else if(event.type == SDL_TEXTINPUT){
-			ctrl_state = lctrl || rctrl;
-			printf("%s, ctrl %s\n", event.text.text, (ctrl_state) ? "pressed" : "released");
-		}else if(event.type == SDL_KEYDOWN && event.key.repeat == 0){
-			if(event.key.keysym.sym == SDLK_RCTRL) { rctrl = 1; printf("erg\n");}
-			else if(event.key.keysym.sym == SDLK_LCTRL) { lctrl = 1; printf("erg\n");}
-			else if(event.key.keysym.sym == SDLK_RETURN){raquette.memory[0xC000] = 0x0D | 0b10000000;}
-		}else if(event.type == SDL_KEYUP){
-			if(event.key.keysym.sym == SDLK_RCTRL) { rctrl = 0; }
-			else if(event.key.keysym.sym == SDLK_LCTRL) { lctrl = 0; }
-		}
-*/
-
 		SDL_UpdateWindowSurface(window);
 	}
 

@@ -3,8 +3,8 @@
 ; Monitor ROM for (fictional) Raquette 2 Computer
 
 ; Zero page registers locations:
-BASL = $0   ; base low
-BASH = $1   ; base high
+ROWL = $0   ; base low
+ROWH = $1   ; base high
 PREVL = $2   ; prev low
 PREVH = $3   ; prev high
 CURROW = $4 ; Cursor row number (0-23)
@@ -22,17 +22,17 @@ a_sp = $20
 ; Operand is in zero page location CURROW
 getrow:
 	lda #$0
-	sta BASL
+	sta ROWL
 	lda CURROW
 rowloop:           ; Up to 3 iterations to find region offset (which third of the screen we are at)
 	cmp #8
 	bmi table
 	sbc #8
 	pha
-	lda BASL       ; add $28 to BASL (no carry needed)
+	lda ROWL       ; add $28 to ROWL (no carry needed)
 	clc
 	adc #$28
-	sta BASL
+	sta ROWL
 	pla
 	jmp rowloop
 table:             ; Uses scrntbl to get row addr
@@ -40,12 +40,12 @@ table:             ; Uses scrntbl to get row addr
 	tay            ; Y contains index into table
 	lda scrntbl,Y  ; Low byte
 	clc
-	adc BASL       ; Add screen region offset from above
-	sta BASL
+	adc ROWL       ; Add screen region offset from above
+	sta ROWL
 	lda #0         ; We need to keep the carry bit
 	iny
 	adc scrntbl,Y  ; High byte
-	sta BASH
+	sta ROWH
 	ldy #0
 	rts
 
@@ -53,20 +53,18 @@ table:             ; Uses scrntbl to get row addr
 blank: ; blank entire screen
 	ldx #23
 	stx CURROW
-bloop: ; blank entire screen
-	txa
+bloop:
 	jsr getrow ; Takes row number in A, places row base addr in zero page
-	jsr blrow ; Blanks row at address BASL
+	jsr blrow ; Blanks row at address ROWL
 	dec CURROW
-	ldx CURROW
 	bpl bloop
 	rts
 
-blrow: ; With base address in zero page (BASL), clear all 40 columns of the row
-	ldy #40
+blrow: ; With base address in zero page (ROWL), clear all 40 columns of the row
+	ldy #39
 	lda #a_sp
 blrowloop:
-	sta (BASL),y
+	sta (ROWL),y
 	dey
 	bpl blrowloop
 	rts
@@ -80,28 +78,23 @@ newline:          ; Copy all lines up, starting at the top
 	sta PREVH     ; Now PREVL/H holds address of first destination row
 scrolloop:
 	inc CURROW
-	lda CURROW
 	jsr getrow    ; Now we are ready to do the copy for this row
 	ldy #39       ; Will copy right to left
 copyloop:
-	lda (BASL),y
+	lda (ROWL),y
 	sta (PREVL),y
 	dey
 	bpl copyloop
 	lda CURROW
 	cmp #23
 	beq donescroll
-	lda BASL       ; Not done, more rows to copy
+	lda ROWL       ; Not done, more rows to copy
 	sta PREVL
-	lda BASH
+	lda ROWH
 	sta PREVH      ; Old source is new dest
 	jmp scrolloop
 donescroll:
-	lda #$07
-	sta BASH
-	lda #$D0
-	sta BASL
-	jsr blrow      ; blank last row
+	jsr blrow      ; blank bottom row
 	ldx #0 ;
 	stx CURCOL
 	rts
@@ -135,9 +128,8 @@ kb_a:
 printchar:
 	ldx CURCOL
 	sta $07D0,x  ; store in last row at cursor
-	inx
-	stx CURCOL
-	cpx #40
+	inc CURCOL
+	cpx #39
 	bne pc_done
 	jsr newline
 pc_done:

@@ -12,7 +12,6 @@
 #define RAQ_STACK (regs[3])
 #define ROM_LO (0xC000)
 
-// The "Raquette" is the standard instructional machine for the University.
 // TODO support smaller memory configurations than 64k
 // TODO Add some assertions on memory bounds, contents, etc
 Raquette::Raquette(uint8_t *init_contents, int len_contents) {
@@ -197,8 +196,7 @@ uint8_t Raquette::rorHelper(uint8_t byte) {
 
 // Records display updates to force redraw
 // TODO Partition screen for efficiency
-// TODO monitor changes to graphics region too
-// TODO consider current mode
+// TODO consider current mode to avoid useless redraws
 void Raquette::dispHelper(int eff_addr) {
 	if(((eff_addr >= 0x0400) && ( eff_addr <= 0x0BFF)) || ((eff_addr >= 0x2000) && ( eff_addr <= 0x5fff))){
 		screen_update = true;
