@@ -107,6 +107,12 @@ SDL_TimerID step_timer_id = SDL_AddTimer(TIME_STEP*CPU_FACTOR, steps_callbackfun
 SDL_TimerID kbd_timer_id = SDL_AddTimer(TIME_STEP, kbd_callbackfunc, 0);
 SDL_TimerID display_timer_id = SDL_AddTimer(TIME_STEP*51, display_callbackfunc, 0);
 
+	// TODO Key repeat and rollover is not quite accurate
+	// Pressing a second key with one key held should type the second key once and then stop
+	// REPT key should reset strobe bit at 15 Hz without affecting lower 7 bits
+	// Releasing keys should not clear lower 7 bits. They should always retain the last press, even once released.
+	// All of this is supposed to be done in hardware. Unfortunately SDL makes it awkward to emulate.
+
 	bool quit = false;
 	while (!quit) {
 		SDL_WaitEvent(&event);

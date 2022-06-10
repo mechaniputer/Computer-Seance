@@ -138,18 +138,9 @@ printchar:
 	inx
 	stx CURCOL
 	cpx #40
-	bne pc_a
+	bne pc_done
 	jsr newline
-pc_a:
-	jsr delay
-	rts
-
-; Currently not needed since emulator frontend does not support key repeat yet
-delay:
-	ldy #255
-deloop:
-	dey
-	bne deloop
+pc_done:
 	rts
 
 nmi:
