@@ -11,150 +11,172 @@ CURROW = $4 ; Cursor row number (0-23)
 CURCOL = $5 ; Cursor row number (0-39)
 
 
-	.segment "OS"
+    .segment "OS"
 
 ; Character constants:
 a_cr = $0d
 a_sp = $20
 
 
+; Takes byte in accumulator and prints 2 chars (jsr printchar)
+hexbyte:
+    pha            ; Need to save copy for later
+    lsr A
+    lsr A
+    lsr A
+    lsr A          ; Shift the upper half down. Now we have a value in the range 0-15
+    jsr printnib
+    pla
+    and #$0F
+; Fall-through for upper half of byte
+printnib:          ; Input must be 0-F or it will do strange things
+    cmp #10
+    bpl AthruF
+	clc
+    adc #$30       ; If it's 0-9 then we can add $30 and print it
+    jmp printchar
+AthruF:
+	clc
+    sbc #8         ; If it's 10-15 then we can subtract 8 and print it
+; fall-through case
+printchar:
+    ldx CURCOL
+    sta $07D0,x  ; store in last row at cursor
+    inc CURCOL
+    cpx #39
+    bne pc_done
+    jsr newline
+pc_done:
+    rts
+
+
 ; Note, there are more efficient ways to do this, but they are under copyright
 ; Operand is in zero page location CURROW
 getrow:
-	lda #$0
-	sta ROWL
-	lda CURROW
+    lda #$0
+    sta ROWL
+    lda CURROW
 rowloop:           ; Up to 3 iterations to find region offset (which third of the screen we are at)
-	cmp #8
-	bmi table
-	sbc #8
-	pha
-	lda ROWL       ; add $28 to ROWL (no carry needed)
-	clc
-	adc #$28
-	sta ROWL
-	pla
-	jmp rowloop
+    cmp #8
+    bmi table
+    sbc #8
+    pha
+    lda ROWL       ; add $28 to ROWL (no carry needed)
+    clc
+    adc #$28
+    sta ROWL
+    pla
+    jmp rowloop
 table:             ; Uses scrntbl to get row addr
-	asl A          ; Table entries are 2 bytes
-	tay            ; Y contains index into table
-	lda scrntbl,Y  ; Low byte
-	clc
-	adc ROWL       ; Add screen region offset from above
-	sta ROWL
-	lda #0         ; We need to keep the carry bit
-	iny
-	adc scrntbl,Y  ; High byte
-	sta ROWH
-	ldy #0
-	rts
+    asl A          ; Table entries are 2 bytes
+    tay            ; Y contains index into table
+    lda scrntbl,Y  ; Low byte
+    clc
+    adc ROWL       ; Add screen region offset from above
+    sta ROWL
+    lda #0         ; We need to keep the carry bit
+    iny
+    adc scrntbl,Y  ; High byte
+    sta ROWH
+    ldy #0
+    rts
 
 
 blank: ; blank entire screen
-	ldx #23
-	stx CURROW
+    ldx #23
+    stx CURROW
 bloop:
-	jsr getrow ; Takes row number in A, places row base addr in zero page
-	jsr blrow ; Blanks row at address ROWL
-	dec CURROW
-	bpl bloop
-	rts
+    jsr getrow ; Takes row number in A, places row base addr in zero page
+    jsr blrow ; Blanks row at address ROWL
+    dec CURROW
+    bpl bloop
+    rts
 
 blrow: ; With base address in zero page (ROWL), clear all 40 columns of the row
-	ldy #39
-	lda #a_sp
+    ldy #39
+    lda #a_sp
 blrowloop:
-	sta (ROWL),y
-	dey
-	bpl blrowloop
-	rts
+    sta (ROWL),y
+    dey
+    bpl blrowloop
+    rts
 
 newline:          ; Copy all lines up, starting at the top
-	lda #0        ; Destination row
-	sta CURROW
-	lda #$00
-	sta PREVL
-	lda #$04
-	sta PREVH     ; Now PREVL/H holds address of first destination row
+    lda #0        ; Destination row
+    sta CURROW
+    lda #$00
+    sta PREVL
+    lda #$04
+    sta PREVH     ; Now PREVL/H holds address of first destination row
 scrolloop:
-	inc CURROW
-	jsr getrow    ; Now we are ready to do the copy for this row
-	ldy #39       ; Will copy right to left
+    inc CURROW
+    jsr getrow    ; Now we are ready to do the copy for this row
+    ldy #39       ; Will copy right to left
 copyloop:
-	lda (ROWL),y
-	sta (PREVL),y
-	dey
-	bpl copyloop
-	lda CURROW
-	cmp #23
-	beq donescroll
-	lda ROWL       ; Not done, more rows to copy
-	sta PREVL
-	lda ROWH
-	sta PREVH      ; Old source is new dest
-	jmp scrolloop
+    lda (ROWL),y
+    sta (PREVL),y
+    dey
+    bpl copyloop
+    lda CURROW
+    cmp #23
+    beq donescroll
+    lda ROWL       ; Not done, more rows to copy
+    sta PREVL
+    lda ROWH
+    sta PREVH      ; Old source is new dest
+    jmp scrolloop
 donescroll:
-	jsr blrow      ; blank bottom row
-	ldx #0 ;
-	stx CURCOL
-	rts
+    jsr blrow      ; blank bottom row
+    ldx #0 ;
+    stx CURCOL
+    rts
 
 reset:
-	cld
-	ldx #0
-	stx CURCOL
-	jsr blank
-	ldx #10      ; num chars to print minus 1
+    cld
+    ldx #0
+    stx CURCOL
+    jsr blank
+    ldx #10      ; num chars to print minus 1
 greeting:
-	lda hello,x
-	sta $0636,x
-	dex
-	bpl greeting
+    lda hello,x
+    sta $0636,x
+    dex
+    bpl greeting
 keybrd:
-	bit $C000    ; bit 7 indicates keypress (and sets N flag)
-	bpl keybrd
-	lda $C000
-	and #$3F     ; Delete 6th+7th bits
-	cmp #a_cr    ; check if CR
-	bne kb_a
-	jsr newline
-	bit $C010    ; Clear strobe
-	jmp keybrd   ; loop
+    bit $C000    ; bit 7 indicates keypress (and sets N flag)
+    bpl keybrd
+    lda $C000
+    and #$3F     ; Delete 6th+7th bits
+    cmp #a_cr    ; check if CR
+    bne kb_a
+    jsr newline
+    bit $C010    ; Clear strobe
+    jmp keybrd   ; loop
 kb_a:
-	jsr printchar
-	bit $C010    ; Clear strobe
-	jmp keybrd   ; loop
-
-printchar:
-	ldx CURCOL
-	sta $07D0,x  ; store in last row at cursor
-	inc CURCOL
-	cpx #39
-	bne pc_done
-	jsr newline
-pc_done:
-	rts
+    jsr printchar
+    bit $C010    ; Clear strobe
+    jmp keybrd   ; loop
 
 nmi:
-	jmp nmi
+    jmp nmi
 
 irq_brk:
-	jmp irq_brk
+    jmp irq_brk
 
 hello:
-	.byte "RAQUETTE II"
+    .byte "RAQUETTE II"
 
 scrntbl:
-	.byte $00, $04
-	.byte $80, $04
-	.byte $00, $05
-	.byte $80, $05
-	.byte $00, $06
-	.byte $80, $06
-	.byte $00, $07
-	.byte $80, $07
+    .byte $00, $04
+    .byte $80, $04
+    .byte $00, $05
+    .byte $80, $05
+    .byte $00, $06
+    .byte $80, $06
+    .byte $00, $07
+    .byte $80, $07
 
-	.segment "VECTORS"
-	.word nmi
-	.word reset
-	.word irq_brk
+    .segment "VECTORS"
+    .word nmi
+    .word reset
+    .word irq_brk
