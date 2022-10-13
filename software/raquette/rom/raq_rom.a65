@@ -9,6 +9,7 @@ PREVL = $2   ; prev low
 PREVH = $3   ; prev high
 CURROW = $4 ; Cursor row number (0-23)
 CURCOL = $5 ; Cursor row number (0-39)
+INPLEN = $6 ; length of input buffer
 
 
     .segment "OS"
@@ -17,6 +18,7 @@ CURCOL = $5 ; Cursor row number (0-39)
 a_cr = $0d
 a_sp = $20
 
+INPBUF = $0800 ; Use second text screen as input buffer
 
 ; Takes byte in accumulator and prints 2 chars (jsr printchar)
 hexbyte:
@@ -135,6 +137,7 @@ reset:
     cld
     ldx #0
     stx CURCOL
+	stx INPLEN
     jsr blank
     ldx #10      ; num chars to print minus 1
 greeting:
@@ -142,20 +145,34 @@ greeting:
     sta $0636,x
     dex
     bpl greeting
+prompt:
+	lda #$24
+	jsr printchar
 keybrd:
     bit $C000    ; bit 7 indicates keypress (and sets N flag)
     bpl keybrd
     lda $C000
-    and #$3F     ; Delete 6th+7th bits
+    and #$7F     ; delete 7th bit
     cmp #a_cr    ; check if CR
     bne kb_a
-    jsr newline
-    bit $C010    ; Clear strobe
-    jmp keybrd   ; loop
+    jsr newline  ; we got a CR
+    bit $C010    ; clear strobe
+	jsr moncom   ; process input buffer
+    jmp prompt   ; loop
 kb_a:
+	ldx INPLEN
+	sta INPBUF,x  ; append to input buffer
+	inc INPLEN    ; increment buffer length
     jsr printchar
-    bit $C010    ; Clear strobe
-    jmp keybrd   ; loop
+    bit $C010     ; clear strobe
+    jmp keybrd    ; loop
+
+moncom: ; process monitor command in input buffer
+	; TODO check first letter for recognized command
+	; TODO jsr to handler for command (with remaining buffer, INPBUF+1, as argument)
+	lda #0
+	sta INPLEN ; buffer is empty now
+	rts
 
 nmi:
     jmp nmi
