@@ -241,32 +241,60 @@ SDL_TimerID display_timer_id = SDL_AddTimer(TIME_STEP*51, display_callbackfunc, 
 						raquette.memory[0xC000]  = (' ' | 0b10000000);
 					}
 				}else if(state[SDL_SCANCODE_1]){
-					if(raquette.memory[0xC000] != ('1')){
-						raquette.memory[0xC000]  = ('1' | 0b10000000);
+					if((raquette.memory[0xC000] != ('1')) && (raquette.memory[0xC000] != ('!'))){
+						if(state[SDL_SCANCODE_RSHIFT] || state[SDL_SCANCODE_LSHIFT]){
+							raquette.memory[0xC000]  = ('!' | 0b10000000);
+						}else{
+							raquette.memory[0xC000]  = ('1' | 0b10000000);
+						}
 					}
 				}else if(state[SDL_SCANCODE_2]){
-					if(raquette.memory[0xC000] != ('2')){
-						raquette.memory[0xC000]  = ('2' | 0b10000000);
+					if((raquette.memory[0xC000] != ('2')) && (raquette.memory[0xC000] != ('@'))){
+						if(state[SDL_SCANCODE_RSHIFT] || state[SDL_SCANCODE_LSHIFT]){
+							raquette.memory[0xC000]  = ('@' | 0b10000000);
+						}else{
+							raquette.memory[0xC000]  = ('2' | 0b10000000);
+						}
 					}
 				}else if(state[SDL_SCANCODE_3]){
-					if(raquette.memory[0xC000] != ('3')){
-						raquette.memory[0xC000]  = ('3' | 0b10000000);
+					if((raquette.memory[0xC000] != ('3')) && (raquette.memory[0xC000] != ('#'))){
+						if(state[SDL_SCANCODE_RSHIFT] || state[SDL_SCANCODE_LSHIFT]){
+							raquette.memory[0xC000]  = ('#' | 0b10000000);
+						}else{
+							raquette.memory[0xC000]  = ('3' | 0b10000000);
+						}
 					}
 				}else if(state[SDL_SCANCODE_4]){
-					if(raquette.memory[0xC000] != ('4')){
-						raquette.memory[0xC000]  = ('4' | 0b10000000);
+					if((raquette.memory[0xC000] != ('4')) && (raquette.memory[0xC000] != ('$'))){
+						if(state[SDL_SCANCODE_RSHIFT] || state[SDL_SCANCODE_LSHIFT]){
+							raquette.memory[0xC000]  = ('$' | 0b10000000);
+						}else{
+							raquette.memory[0xC000]  = ('4' | 0b10000000);
+						}
 					}
 				}else if(state[SDL_SCANCODE_5]){
-					if(raquette.memory[0xC000] != ('5')){
-						raquette.memory[0xC000]  = ('5' | 0b10000000);
+					if((raquette.memory[0xC000] != ('5')) && (raquette.memory[0xC000] != ('%'))){
+						if(state[SDL_SCANCODE_RSHIFT] || state[SDL_SCANCODE_LSHIFT]){
+							raquette.memory[0xC000]  = ('%' | 0b10000000);
+						}else{
+							raquette.memory[0xC000]  = ('5' | 0b10000000);
+						}
 					}
 				}else if(state[SDL_SCANCODE_6]){
-					if(raquette.memory[0xC000] != ('6')){
-						raquette.memory[0xC000]  = ('6' | 0b10000000);
+					if((raquette.memory[0xC000] != ('6')) && (raquette.memory[0xC000] != ('^'))){
+						if(state[SDL_SCANCODE_RSHIFT] || state[SDL_SCANCODE_LSHIFT]){
+							raquette.memory[0xC000]  = ('^' | 0b10000000);
+						}else{
+							raquette.memory[0xC000]  = ('6' | 0b10000000);
+						}
 					}
 				}else if(state[SDL_SCANCODE_7]){
-					if(raquette.memory[0xC000] != ('7')){
-						raquette.memory[0xC000]  = ('7' | 0b10000000);
+					if((raquette.memory[0xC000] != ('7')) && (raquette.memory[0xC000] != ('&'))){
+						if(state[SDL_SCANCODE_RSHIFT] || state[SDL_SCANCODE_LSHIFT]){
+							raquette.memory[0xC000]  = ('&' | 0b10000000);
+						}else{
+							raquette.memory[0xC000]  = ('7' | 0b10000000);
+						}
 					}
 				}else if(state[SDL_SCANCODE_8]){
 					if((raquette.memory[0xC000] != ('8')) && (raquette.memory[0xC000] != ('*'))){
