@@ -10,7 +10,9 @@ PREVH = $3   ; prev high
 CURROW = $4 ; Cursor row number (0-23)
 CURCOL = $5 ; Cursor row number (0-39)
 INPLEN = $6 ; length of input buffer
-
+NUMCON = $7 ; Running sum of number being converted
+CURDIG = $9 ; Current decimal place value during conversion
+FOO = $10 ; General purpose extra register
 
     .segment "OS"
 
@@ -19,6 +21,12 @@ a_cr = $0d
 a_sp = $20
 
 INPBUF = $0800 ; Use second text screen as input buffer
+
+
+; Square root? Polynomial? Store in array?
+; Print the result afterwards
+do_math:
+	rts
 
 ; Takes byte in accumulator and prints 2 chars (jsr printchar)
 hexbyte:
@@ -41,7 +49,7 @@ AthruF:
 	clc
     sbc #8         ; If it's 10-15 then we can subtract 8 and print it
 ; fall-through case
-printchar:
+printchar: ; Prints the char currently held in A
     ldx CURCOL
     sta $07D0,x  ; store in last row at cursor
     inc CURCOL
@@ -170,8 +178,58 @@ kb_a:
 moncom: ; process monitor command in input buffer
 	; TODO check first letter for recognized command
 	; TODO jsr to handler for command (with remaining buffer, INPBUF+1, as argument)
+	ldx INPLEN
+	beq noinput
+	jsr ascii_to_int
 	lda #0
 	sta INPLEN ; buffer is empty now
+noinput:
+	rts
+
+; For now, tries to use entire input buffer as int
+; Note: expects INPLEN to already be in X reg
+; X reg is used to strp backwards through input
+; Y reg is used to count decimal places
+ascii_to_int:
+	ldy #0 ; Doubles as current digit place counter
+	sty NUMCON ; Clear previous result (low)
+	sty CURDIG  ; Clear previous digit counter
+	dex ; Index was +1 to place next char
+intloop: ; Right to left (lsd to msd)
+	lda INPBUF,x
+	; to BCD TODO: Abort if not a digit
+	clc
+	sbc #$2F
+	; Multiply by 10 enough times for current place value
+	cpy #0
+	beq decplacedone
+decimalloop: ; TODO detect overflow and use high order word
+	; Not zero
+	asl A ; 2x and store
+	sta FOO
+	asl A ; 4x
+	asl A ; 8x
+	adc FOO ; 10x
+	dey
+	beq decplacedone
+	jmp decimalloop
+decplacedone:
+	clc
+	adc NUMCON
+	sta NUMCON
+	inc CURDIG ; Next digit place value (x10)
+	ldy CURDIG
+	dex ; Next input character (right to left)
+	bpl intloop
+
+; Temporary: print the number we got
+	jsr newline
+	lda NUMCON
+	jsr hexbyte
+
+; Temporary: do something with the input
+	jsr newline
+	jsr do_math
 	rts
 
 nmi:
