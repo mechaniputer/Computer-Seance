@@ -11,10 +11,25 @@ A computer séance, if you will.
 
 ## Raquette
 Raquette is an SDL-based interactive emulator for a 6502 system inspired by a classic computer named after a fruit.
+The emulator is named after the Raquette River.
 The graphic modes work, and disk support is in progress. Sound output is not supported yet, nor tape data IO.
 Once the hardware emulation is more complete I will work on software, including a ROM since all compatible BASIC ROMs are still considered proprietary.
 That said, if you have your own backup of a compatible ROM, it will run fine and you will be able to write BASIC programs.
 I will also need to write a disk operating system for it in order for that feature to be at all useful.
+
+### How to run the Raquette emulator
+For The SDL version:
+```
+cd graphics/
+make
+./test_raq_gui
+```
+For the ncurses version (experimental, no graphics mode support):
+```
+cd computer/
+make
+./testcomp
+```
 
 ## Future Ideas
 I would like to add emulators for more advanced classic-inspired architectures (mainframe, mini, etc). A navigable RPG-style overworld with visuals of each machine would be nice too. Like a virtual museum.
