@@ -1,4 +1,5 @@
 #include <iostream>
+#include <fstream>
 #include <assert.h>
 #include <tuple>
 #include <ncurses.h>
@@ -11,6 +12,109 @@
 #define RAQ_Y (regs[2])
 #define RAQ_STACK (regs[3])
 #define ROM_LO (0xC000)
+
+Raquette::RaqDisk::RaqDisk() {
+	std::ifstream infile("../software/raquette/dos/DOS 3.3 Master.dsk", std::ios::binary | std::ios::in);
+	if(!infile){
+		std::cout << "Cannot open DSK file\n";
+		exit(-1);
+	}
+	//get length of file
+	infile.seekg(0, std::ios::end);
+	size_t length = infile.tellg();
+	infile.seekg(0, std::ios::beg);
+
+	std::cout << "Opened disk of length " << length << std::endl;
+	if (length != 143360){
+		std::cout << "DSK file wrong size\n";
+		exit(-1);
+	}
+	char * buffer = new char[length];
+	infile.read(buffer, length);
+
+	// Copy into array representing disk sectors
+	for (int track =0; track < 35; track++){
+		for(int sector=0; sector<16; sector++){
+			for (int byte=0; byte<256; byte++){
+				disk[track][sector][byte] = buffer[(track*16*256)+(sector*256)+byte];
+			}
+		}
+	}
+	delete [] buffer;
+
+	stepperPhase = 0; // TODO random
+	halftrack = 0; //TODO random
+	stepper_p0 = false;
+	stepper_p1 = false;
+	stepper_p2 = false;
+	stepper_p3 = false;
+
+};
+
+// Cause the stepper rotor to react to the magnets, updating the phase and track
+// Track can be 0-34
+uint8_t Raquette::RaqDisk::stepper() {
+	if (stepperPhase == 0){
+		if (stepper_p0){
+			return halftrack;
+		}else if ((halftrack > 0) && stepper_p3 && !stepper_p1){
+			stepperPhase = 3;
+			halftrack--;
+			return halftrack;
+		}else if (stepper_p1 && !stepper_p3){
+			stepperPhase = 1;
+			halftrack++;
+			return halftrack;
+		}else{
+			return halftrack;
+		}
+	}else if (stepperPhase == 1){
+		if (stepper_p1){
+			return halftrack;
+		}else if (stepper_p0 && !stepper_p2){
+			stepperPhase = 0;
+			halftrack--;
+			return halftrack;
+		}else if (!stepper_p0 && stepper_p2){
+			stepperPhase = 2;
+			halftrack++;
+			return halftrack;
+		}else{
+			return halftrack;
+		}
+	}else if (stepperPhase == 2){
+		if (stepper_p2){
+			return halftrack;
+		}else if (stepper_p1 && !stepper_p3){
+			stepperPhase = 1;
+			halftrack--;
+			return halftrack;
+		}else if (!stepper_p1 && stepper_p3){
+			stepperPhase = 3;
+			halftrack++;
+			return halftrack;
+		}else{
+			return halftrack;
+		}
+	}else if (stepperPhase == 3){
+		if (stepper_p3){
+			return halftrack;
+		}else if (stepper_p2 && !stepper_p0){
+			stepperPhase = 2;
+			halftrack--;
+			return halftrack;
+		}else if ((halftrack < 68) && !stepper_p2 && stepper_p0){
+			stepperPhase = 0;
+			halftrack++;
+			return halftrack;
+		}else{
+			return halftrack;
+		}
+	}else{
+		std::cout << "Error: disk stepper out of bounds\n";
+		exit(-1);
+	}
+}
 
 // TODO support smaller memory configurations than 64k
 // TODO Add some assertions on memory bounds, contents, etc
@@ -239,6 +343,7 @@ void Raquette::softSwitchesHelper(int eff_addr){
 		// HI_RES
 		hi_res = true;
 	}
+	// TODO disk control
 	return;
 }
 
@@ -1573,9 +1678,6 @@ bool Raquette::renderScreen(){
 					}
 				}else if(hi_res && (col%2 == 0)){ // Print 2 char widths at a time (blocks of 14x8)
 					// HI-RES graphics
-					// FIXME There is still a possible inaccuracy here
-					//       Namely, itdoes not produce white pixels on odd adjacencies
-					//       I'm actually not sure if this is a bug yet (should check real hardware)
 					int rowaddr = hires_base + ((row%8)*128) + (row/8)*40; // Steps of 128, interleaved in groups of 8
 					for(int line=0; line<8; line++){ // 8 lines per char row
 						int dots[14];
@@ -1585,6 +1687,7 @@ bool Raquette::renderScreen(){
 						}
 						int palate1 = (memory[rowaddr+(1024*line)+(col)] >> 7) & 0b1;
 						int palate2 = (memory[rowaddr+(1024*line)+(col+1)] >> 7) & 0b1;
+
 						// join two chars and print 14 pixels per line
 						for (int pixel=0; pixel<7; pixel++){
 							int color1, color2;
@@ -1603,6 +1706,17 @@ bool Raquette::renderScreen(){
 							}
 							dispBuf[(8*row)+line][(col*7)+(pixel*2)] = dots[pixel*2] * ((pixel > 3) ? color2 : color1);
 							dispBuf[(8*row)+line][(col*7)+(pixel*2)+1] = dots[(pixel*2)+1] * ((pixel > 2) ? color2 : color1);
+						}
+						// Add white fringe artifact for accuracy
+						// This is bad, but good enough for now
+						// Eventually the HI-RES graphics rendering should be totally redone
+						for(int i=-1; i<13; i++){
+							if (dispBuf[(8*row)+line][(col*7)+(i)] && dispBuf[(8*row)+line][(col*7)+(i+1)]){
+								if (((col*7)+(i)) > 0){
+									dispBuf[(8*row)+line][(col*7)+(i)] = 15; // White
+								}
+								dispBuf[(8*row)+line][(col*7)+(i+1)] = 15; // White
+							}
 						}
 					}
 				}else if(!hi_res){

@@ -47,7 +47,7 @@ void test_raq_romfile(){
 	infile.seekg(0, std::ios::beg);
 
 	char * buffer = new char[length];
-	std::cout << "Opened file of length " << length << std::endl;
+	std::cout << "Opened rom of length " << length << std::endl;
 	infile.read(buffer, length);
 
 	uint8_t raq_rom_arr[0xFFFF];

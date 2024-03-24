@@ -2,9 +2,26 @@
 
 class Raquette: public Computer {
 	public:
+
+
+	class RaqDisk {
+		public:
+		// 35 tracks of 16 sectors of 256 bytes
+		uint8_t disk[35][16][256];
+		uint8_t stepperPhase;
+		uint8_t halftrack;
+		bool stepper_p0;
+		bool stepper_p1;
+		bool stepper_p2;
+		bool stepper_p3;
+		RaqDisk();
+		uint8_t stepper();
+	};
+
 	// 7 processor status flags:
 	bool flag_c, flag_z, flag_i, flag_d, flag_b, flag_v, flag_n;
 	char dispBuf[192][280];
+	RaqDisk disk1;
 	Raquette(uint8_t *init_contents = nullptr, int len_contents = 0);
 	// TODO reset (for resetting regs and pc)
 	std::tuple<int, int> aModeHelper(uint8_t thisbyte);
@@ -93,3 +110,4 @@ class Raquette: public Computer {
 	0x20,0x00,0x20,0x20,0x10,0x88,0x70, // ?
 	};
 };
+
