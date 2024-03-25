@@ -14,33 +14,33 @@
 #define ROM_LO (0xC000)
 
 Raquette::RaqDisk::RaqDisk() {
-	std::ifstream infile("../software/raquette/foo.dsk", std::ios::binary | std::ios::in);
+	std::ifstream infile("../software/raquette/foo.DSK", std::ios::binary | std::ios::in);
 	if(!infile){
-		std::cout << "Cannot open DSK file\n";
-		exit(-1);
-	}
-	//get length of file
-	infile.seekg(0, std::ios::end);
-	size_t length = infile.tellg();
-	infile.seekg(0, std::ios::beg);
+		std::cout << "Cannot open DSK file. Continuing with no disk.\n";
+	}else{
+		//get length of file
+		infile.seekg(0, std::ios::end);
+		size_t length = infile.tellg();
+		infile.seekg(0, std::ios::beg);
 
-	std::cout << "Opened disk of length " << length << std::endl;
-	if (length != 143360){
-		std::cout << "DSK file wrong size\n";
-		exit(-1);
-	}
-	char * buffer = new char[length];
-	infile.read(buffer, length);
+		std::cout << "Opened disk of length " << length << std::endl;
+		if (length != 143360){
+			std::cout << "DSK file wrong size\n";
+			exit(-1);
+		}
+		char * buffer = new char[length];
+		infile.read(buffer, length);
 
-	// Copy into array representing disk sectors
-	for (int track =0; track < 35; track++){
-		for(int sector=0; sector<16; sector++){
-			for (int byte=0; byte<256; byte++){
-				disk[track][sector][byte] = buffer[(track*16*256)+(sector*256)+byte];
+		// Copy into array representing disk sectors
+		for (int track =0; track < 35; track++){
+			for(int sector=0; sector<16; sector++){
+				for (int byte=0; byte<256; byte++){
+					disk[track][sector][byte] = buffer[(track*16*256)+(sector*256)+byte];
+				}
 			}
 		}
+		delete [] buffer;
 	}
-	delete [] buffer;
 
 	stepperPhase = 0; // TODO random
 	halftrack = 0; //TODO random
@@ -48,7 +48,8 @@ Raquette::RaqDisk::RaqDisk() {
 	stepper_p1 = false;
 	stepper_p2 = false;
 	stepper_p3 = false;
-
+	spinning = false; // TODO spin-up delay
+	drive = 1; // TODO support 2nd drive
 };
 
 // Cause the stepper rotor to react to the magnets, updating the phase and track
@@ -118,6 +119,7 @@ uint8_t Raquette::RaqDisk::stepper() {
 
 // TODO support smaller memory configurations than 64k
 // TODO Add some assertions on memory bounds, contents, etc
+// init_contents can be used to restore saved state
 Raquette::Raquette(uint8_t *init_contents, int len_contents) {
 	unsigned tmp; // For intermediate values below
 	int eff_addr = 0; // Effective address of interrupt vector
@@ -153,14 +155,38 @@ Raquette::Raquette(uint8_t *init_contents, int len_contents) {
 	for(int i=0; i < (width_bytes * num_words); i++){
 		memory[i] = uint8_t(0);
 	}
-	// Load or zero memory
+
 	if (init_contents) {
+		std::cout << "Restoring memory contents\n";
 		// TODO replace with improved helper that supports load to any location
 		for(int i=0; i < len_contents; i++){
 			memory[i] = init_contents[i];
 		}
+	}else{
+//		std::ifstream infile("../computer/A2ROM.BIN", std::ios::binary | std::ios::in);
+//		std::ifstream infile("../computer/apple.rom", std::ios::binary | std::ios::in);
+		std::ifstream infile("../software/raquette/rom/raq_rom.bin", std::ios::binary | std::ios::in);
+		if(!infile){
+			std::cout << "Cannot open ROM file\n";
+			exit(0);
+		}
+		//get length of file
+		infile.seekg(0, std::ios::end);
+		size_t length = infile.tellg();
+		infile.seekg(0, std::ios::beg);
+
+		char * buffer = new char[length];
+		std::cout << "Opened ROM file of length " << length << std::endl;
+		infile.read(buffer, length);
+
+		// ROM goes at end of mem
+		for (unsigned i=0; i < length; i++) {
+			memory[1+i+(0xFFFF-length)] = buffer[i];
+		}
+		delete [] buffer;
 	}
 
+	// TODO Add way of restoring reg states from saved snapshot
 	// Now initialize PC by reading reset vector from FFFC-FFFD
 	tmp = memory[0xFFFD]; // tmp is an unsigned int with room for shifts
 	eff_addr = (tmp << 8) + memory[0xFFFC];
@@ -342,8 +368,60 @@ void Raquette::softSwitchesHelper(int eff_addr){
 	}else if(eff_addr == 0xc057){
 		// HI_RES
 		hi_res = true;
+	// There are 7 possible slots and the slot determines the address of the soft switches.
+	// C09x thru C0Fx
+	// For now we assume there is one controller in slot 6 only: C0Ex
+	// But looking forward, we want a general way to handle other expansion boards in arbitrary slots.
+	}else if(eff_addr == 0xc0e0){ // Stepper Phase 0 off
+		disk.stepper_p0 = false;
+		disk.stepper();
+	}else if(eff_addr == 0xc0e1){ // Stepper Phase 0 on
+		disk.stepper_p0 = true;
+		disk.stepper();
+	}else if(eff_addr == 0xc0e2){ // Stepper Phase 1 off
+		disk.stepper_p1 = false;
+		disk.stepper();
+	}else if(eff_addr == 0xc0e3){ // Stepper Phase 1 on
+		disk.stepper_p1 = true;
+		disk.stepper();
+	}else if(eff_addr == 0xc0e4){ // Stepper Phase 2 off
+		disk.stepper_p2 = false;
+		disk.stepper();
+	}else if(eff_addr == 0xc0e5){ // Stepper Phase 2 on
+		disk.stepper_p2 = true;
+		disk.stepper();
+	}else if(eff_addr == 0xc0e6){ // Stepper Phase 3 off
+		disk.stepper_p3 = false;
+		disk.stepper();
+	}else if(eff_addr == 0xc0e7){ // Stepper Phase 3 on
+		disk.stepper_p3 = true;
+		disk.stepper();
+	}else if(eff_addr == 0xc0e8){ // Disk off
+		disk.spinning = false;
+	}else if(eff_addr == 0xc0e9){ // Disk on
+		disk.spinning = true;
+	}else if(eff_addr == 0xc0ea){ // Select drive 1
+		disk.drive = 1;
+	}else if(eff_addr == 0xc0eb){ // Select drive 2
+		disk.drive = 2;
+	}else if(eff_addr == 0xc0ec){ // Q6 LO
+		// TODO
+		// This is where the data bytes are read from.
+		// Ref to make interface begin transmitting bits to disk
+	}else if(eff_addr == 0xc0ed){ // Q6 HI
+		// TODO
+		// Ref to check write protect notch
+		// 2nd byte (and later) to write goes here
+	}else if(eff_addr == 0xc0ee){ // Q7 LO
+		// TODO
+		// Ref to activate read mode and turn off write mode
+	}else if(eff_addr == 0xc0ef){ // Q7 HI
+		// TODO
+		// Write protect notch check result in high bit
+		// Ref to activate write mode
+		// 1st byte to write goes here
 	}
-	// TODO disk control
+
 	return;
 }
 

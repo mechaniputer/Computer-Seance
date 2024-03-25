@@ -60,36 +60,8 @@ unsigned int kbd_callbackfunc(Uint32 interval, void *param) {
 
 int main(void) {
 
-	// TODO Place this in class Raquette
-//	std::ifstream infile("../computer/A2ROM.BIN", std::ios::binary | std::ios::in);
-//	std::ifstream infile("../computer/apple.rom", std::ios::binary | std::ios::in);
-	std::ifstream infile("../software/raquette/rom/raq_rom.bin", std::ios::binary | std::ios::in);
-	if(!infile){
-		std::cout << "Cannot open ROM file\n";
-		exit(0);
-	}
-	//get length of file
-	infile.seekg(0, std::ios::end);
-	size_t length = infile.tellg();
-	infile.seekg(0, std::ios::beg);
 
-	char * buffer = new char[length];
-	std::cout << "Opened file of length " << length << std::endl;
-	infile.read(buffer, length);
-
-	uint8_t raq_rom_arr[0xFFFF];
-	for (unsigned i=0; i < 0xD000; i++) {
-		raq_rom_arr[i] = 0x00; // Zero low mem
-	}
-	for (unsigned i=0; i < length; i++) {
-//		raq_rom_arr[i+0xD000] = buffer[i];
-		raq_rom_arr[1+i+(0xFFFF-length)] = buffer[i];
-	}
-
-
-	delete [] buffer;
-
-	Raquette raquette(raq_rom_arr, 0xFFFF+1);
+	Raquette raquette;
 
 	SDL_Event event;
 	SDL_Renderer *renderer;

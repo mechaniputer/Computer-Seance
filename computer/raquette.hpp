@@ -16,12 +16,14 @@ class Raquette: public Computer {
 		bool stepper_p3;
 		RaqDisk();
 		uint8_t stepper();
+		bool spinning;
+		uint8_t drive; // 1 or 2
 	};
 
 	// 7 processor status flags:
 	bool flag_c, flag_z, flag_i, flag_d, flag_b, flag_v, flag_n;
 	char dispBuf[192][280];
-	//RaqDisk disk1;
+	RaqDisk disk; // Assumed to be in slot 6 for now
 	Raquette(uint8_t *init_contents = nullptr, int len_contents = 0);
 	// TODO reset (for resetting regs and pc)
 	std::tuple<int, int> aModeHelper(uint8_t thisbyte);
