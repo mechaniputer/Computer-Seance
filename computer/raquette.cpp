@@ -14,7 +14,7 @@
 #define ROM_LO (0xC000)
 
 Raquette::RaqDisk::RaqDisk() {
-	std::ifstream infile("../software/raquette/dos/DOS 3.3 Master.dsk", std::ios::binary | std::ios::in);
+	std::ifstream infile("../software/raquette/foo.dsk", std::ios::binary | std::ios::in);
 	if(!infile){
 		std::cout << "Cannot open DSK file\n";
 		exit(-1);
