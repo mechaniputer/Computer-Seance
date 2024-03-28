@@ -207,7 +207,9 @@ Raquette::Raquette(uint8_t *init_contents, int len_contents) {
 
 // Takes the current byte with the opcode part masked out
 // Determines the addressing mode
-// Returns a tuple of: The effective address of the current instruction and the amount to increase pc
+// Returns a tuple of:
+//     The effective address of the current instruction
+//     The amount to increase pc
 std::tuple<int, int> Raquette::aModeHelper(uint8_t thisbyte) {
 	uint8_t amode = (thisbyte & ~RAQ_MASK_OPC); // Zero-mask opcode bits
 	int opbytes = 0; // Remember how much to increase PC
@@ -293,6 +295,76 @@ std::tuple<int, int> Raquette::aModeHelper(uint8_t thisbyte) {
 			break;
 	}
 	return std::make_tuple(eff_addr, opbytes);
+}
+
+// Uses opcode to determine cycles needed for instruction
+// Does not account for page boundary crossings.
+// Do that in step() for each instruction.
+uint8_t Raquette::cycleCountHelper(uint8_t opcode) {
+	switch(opcode){
+		case 0xEA: // NOP
+		case 0xAA: // TAX
+		case 0x8A: // TXA
+		case 0xCA: // DEX
+		case 0xE8: // INX
+		case 0xA8: // TAY
+		case 0x98: // TYA
+		case 0x88: // DEY
+		case 0xC8: // INY
+		case 0x18: // CLC
+		case 0x38: // SEC
+		case 0x58: // CLI
+		case 0x78: // SEI
+		case 0xB8: // CLV
+		case 0xD8: // CLD
+		case 0xF8: // SED
+		case 0x69: // ADC IMM
+		case 0x29: // AND IMM
+		case 0xC9: // CMP IMM
+		case 0xE0: // CPX IMM
+		case 0xC0: // CPY IMM
+		case 0x49: // EOR IMM
+		case 0xA9: // LDA IMM
+		case 0xA2: // LDX IMM
+		case 0xA0: // LDY IMM
+		case 0x09: // ORA IMM
+		case 0xE9: // SBC IMM
+		case 0x4A: // LSR ACC
+		case 0x2A: // ROL ACC
+		case 0x6A: // ROR ACC
+			return 2;
+		case 0x65: // ADC ZP
+		case 0x25: // AND ZP
+		case 0x24: // BIT ZP
+		case 0xC5: // CMP ZP
+		case 0xE4: // CPX ZP
+		case 0xC4: // CPY ZP
+		case 0x45: // EOR ZP
+		case 0xA5: // LDA ZP
+		case 0xA6: // LDX ZP
+		case 0xA4: // LDY ZP
+		case 0x05: // ORA ZP
+		case 0xE5: // SBC ZP
+		case 0x85: // STA ZP
+		case 0x86: // STX ZP
+		case 0x84: // STY ZP
+		case 0x4C: // JMP ABS
+			return 3;
+/*
+		case 0x // 
+			return 4;
+		case 0x // 
+			return 5;
+		case 0x // 
+			return 6;
+*/
+		case 0x00: // BRK
+//		case 0x // 
+			return 7;
+		default:
+			std::cout << "Error: Unrecognized opcode while determining cycle count\n";
+			return 0;
+	}
 }
 
 // Performs common steps of ROL instructions
@@ -450,9 +522,12 @@ int Raquette::step(bool verbose) {
 	}
 
 	unsigned tmp, tmp2; // For intermediate values below
-	int eff_addr, opbytes;
+	int eff_addr, opbytes, opcycles;
 	uint8_t thisbyte = memory[pc];
 	uint8_t tmpbyte;
+
+	opcycles = cycleCountHelper(thisbyte);
+	// TODO add 1 if page boundary crossed for certain instructions, but not all.
 
 	opbytes = 0;
 	switch (thisbyte) {
@@ -460,7 +535,7 @@ int Raquette::step(bool verbose) {
 			if(verbose) std::cout << "BRK\n";
 			flag_b = true;
 
-			// Note: BRK is a 2-byte opcode with the second byte ignored. Much documentation is incorrect.
+			// Note: BRK is a 2-byte op with the second byte ignored. Much documentation is incorrect.
 			// Push MSB of PC
 			memory[0x100+RAQ_STACK--] = (((pc+2)>>8) & 0b11111111);
 			// Push LSB of PC
@@ -1616,6 +1691,7 @@ int Raquette::step(bool verbose) {
 			return 1;
 			break;
 	}
+	// TODO use opcycles for timer callbacks
 	pc += opbytes;
 	return !((pc > 0) && (pc < num_words));
 
