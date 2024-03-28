@@ -362,7 +362,8 @@ uint8_t Raquette::cycleCountHelper(uint8_t opcode) {
 //		case 0x // 
 			return 7;
 		default:
-			std::cout << "Error: Unrecognized opcode while determining cycle count\n";
+			// TODO uncomment when complete, and should probably return error code to caller
+			//std::cout << "Error: Unrecognized opcode while determining cycle count\n";
 			return 0;
 	}
 }
