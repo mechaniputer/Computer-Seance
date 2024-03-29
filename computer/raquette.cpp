@@ -350,11 +350,68 @@ uint8_t Raquette::cycleCountHelper(uint8_t opcode) {
 		case 0x84: // STY ZP
 		case 0x4C: // JMP ABS
 			return 3;
-/*
-		case 0x // 
+		case 0x75: // ADC ZP,X
+		case 0x6D: // ADC ABS
+		case 0x7D: // ADC ,X
+		case 0x79: // ADC ,Y
+		case 0x35: // AND ZP,X
+		case 0x2D: // AND ABS
+		case 0x3D: // AND ,X
+		case 0x39: // AND ,Y
+		case 0x2C: // BIT ABS
+		case 0xD5: // CMP ZP,X
+		case 0xCD: // CMP ABS
+		case 0xDD: // CMP ,X
+		case 0xD9: // CMP ,Y
+		case 0xEC: // CPX ABS
+		case 0xCC: // CPY ABS
+		case 0x55: // EOR ZP,X
+		case 0x4D: // EOR ABS
+		case 0x5D: // EOR ,X
+		case 0x59: // EOR ,Y
+		case 0xB5: // LDA ZP,X
+		case 0xAD: // LDA ABS
+		case 0xBD: // LDA ,X
+		case 0xB9: // LDA ,Y
+		case 0xB6: // LDX ZP,Y
+		case 0xAE: // LDX ABS
+		case 0xBE: // LDX ,Y
+		case 0xB4: // LDY ZP,X
+		case 0xAC: // LDY ABS
+		case 0xBC: // LDY ,X
+		case 0x15: // ORA ZP,X
+		case 0x0D: // ORA ABS
+		case 0x1D: // ORA ,X
+		case 0x19: // ORA ,Y
+		case 0xF5: // SBC ZP,X
+		case 0xED: // SBC ABS
+		case 0xFD: // SBC ,X
+		case 0xF9: // SBC ,Y
+		case 0x95: // STA ZP,X
+		case 0x8D: // STA ABS
+		case 0x96: // STX, ZP,Y
+		case 0x8E: // STX, ABS
+		case 0x94: // STY ZP,X
+		case 0x8C: // STY ABS
 			return 4;
-		case 0x // 
+		case 0x06: // ASL ZP
+		case 0xC6: // DEC ZP
+		case 0xE6: // INC ZP
+		case 0x46: // LSR ZP
+		case 0x26: // ROL ZP
+		case 0x66: // ROR ZP
+		case 0x9D: // STA ,X
+		case 0x99: // STA ,Y
+		case 0x6C: // JMP IND
+		case 0x71: // ADC IND,Y
+		case 0x31: // AND IND,Y
+		case 0xD1: // CMP IND,Y
+		case 0x51: // EOR IND,Y
+		case 0xB1: // LDA IND,Y
+		case 0x11: // ORA IND,Y
+		case 0xF1: // SBC IND,Y
 			return 5;
+/*
 		case 0x // 
 			return 6;
 */
