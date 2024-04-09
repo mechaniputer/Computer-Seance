@@ -301,6 +301,8 @@ std::tuple<int, int> Raquette::aModeHelper(uint8_t thisbyte) {
 // Does not account for page boundary crossings.
 // Do that in step() for each instruction.
 uint8_t Raquette::cycleCountHelper(uint8_t opcode) {
+/*
+*/
 	switch(opcode){
 		case 0xEA: // NOP
 		case 0xAA: // TAX
@@ -332,6 +334,17 @@ uint8_t Raquette::cycleCountHelper(uint8_t opcode) {
 		case 0x4A: // LSR ACC
 		case 0x2A: // ROL ACC
 		case 0x6A: // ROR ACC
+		case 0x10: // BPL (2 cycles if not taken)
+		case 0x30: // BMI (2 cycles if not taken)
+		case 0x50: // BVC (2 cycles if not taken) // FIXME some sources say always 3 cycles for BVC
+		case 0x70: // BVS (2 cycles if not taken)
+		case 0x90: // BCC (2 cycles if not taken)
+		case 0xB0: // BCS (2 cycles if not taken)
+		case 0xD0: // BNE (2 cycles if not taken)
+		case 0xF0: // BEQ (2 cycles if not taken)
+		case 0x0A: // ASL A // TODO Not totally sure on this one
+		case 0x9A: // TXS   // TODO Not totally sure on this one
+		case 0xBA: // TSX   // TODO Not totally sure on this one
 			return 2;
 		case 0x65: // ADC ZP
 		case 0x25: // AND ZP
@@ -349,6 +362,9 @@ uint8_t Raquette::cycleCountHelper(uint8_t opcode) {
 		case 0x86: // STX ZP
 		case 0x84: // STY ZP
 		case 0x4C: // JMP ABS
+		case 0x48: // PHA // TODO Not totally sure on this one
+		case 0x68: // PLA // TODO Not totally sure on this one
+		case 0x08: // PHP // TODO Not totally sure on this one
 			return 3;
 		case 0x75: // ADC ZP,X
 		case 0x6D: // ADC ABS
@@ -393,6 +409,7 @@ uint8_t Raquette::cycleCountHelper(uint8_t opcode) {
 		case 0x8E: // STX, ABS
 		case 0x94: // STY ZP,X
 		case 0x8C: // STY ABS
+		case 0x28: // PLP // TODO not totally sure about this one
 			return 4;
 		case 0x06: // ASL ZP
 		case 0xC6: // DEC ZP
@@ -411,16 +428,40 @@ uint8_t Raquette::cycleCountHelper(uint8_t opcode) {
 		case 0x11: // ORA IND,Y
 		case 0xF1: // SBC IND,Y
 			return 5;
-/*
-		case 0x // 
+		case 0x40: // RTI IMP
+		case 0x60: // RTS IMP
+		case 0x16: // ASL ZP,X
+		case 0xD6: // DEC ZP,X
+		case 0xF6: // INC ZP,X
+		case 0x56: // LSR ZP,X
+		case 0x36: // ROL ZP,X
+		case 0x76: // ROR ZP,X
+		case 0x0E: // ASL ABS
+		case 0xCE: // DEC ABS
+		case 0xEE: // INC ABS
+		case 0x20: // JSR ABS
+		case 0x4E: // LSR ABS
+		case 0x2E: // ROL ABS
+		case 0x6E: // ROR ABS
+		case 0x61: // ADC IND,X
+		case 0x21: // AND IND,X
+		case 0xC1: // CMP IND,X
+		case 0x41: // EOR IND,X
+		case 0xA1: // LDA IND,X
+		case 0x01: // ORA IND,X
+		case 0xE1: // SBC IND,X
+		case 0x81: // STA IND,X
+		case 0x91: // STA IND,Y
 			return 6;
-*/
 		case 0x00: // BRK
-//		case 0x // 
+		case 0x1E: // ASL ABS,X
+		case 0xDE: // DEC ABS,X
+		case 0xFE: // INC ABS,X
+		case 0x5E: // LSR ABS,X
+		case 0x3E: // ROL ABS,X
+		case 0x7E: // ROR ABS,X
 			return 7;
 		default:
-			// TODO uncomment when complete, and should probably return error code to caller
-			//std::cout << "Error: Unrecognized opcode while determining cycle count\n";
 			return 0;
 	}
 }
@@ -585,7 +626,15 @@ int Raquette::step(bool verbose) {
 	uint8_t tmpbyte;
 
 	opcycles = cycleCountHelper(thisbyte);
+	if(opcycles==0){
+		std::cout << "Error: unrecognized opcode: " << std::hex << (unsigned)thisbyte << " at " << pc << std::endl;
+		return 1;
+	}
+	// TODO add 1 if any branch taken
 	// TODO add 1 if page boundary crossed for certain instructions, but not all.
+	// For example some (all?) branch instructions when dest is a different page
+	// Many indexed operations when index crosses a page
+	// May want to write a helper macro diffpage(addr1, addr2)
 
 	opbytes = 0;
 	switch (thisbyte) {

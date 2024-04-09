@@ -75,7 +75,7 @@ void test_raq_romfile(){
 }
 
 void test_raq_all(){
-	std::ifstream infile("software/raquette/functionalTest/6502_functional_test.bin", std::ios::binary | std::ios::in);
+	std::ifstream infile("../software/raquette/functionalTest/6502_functional_test.bin", std::ios::binary | std::ios::in);
 	if(!infile){
 		std::cout << "Cannot open ROM file\n";
 		return;
