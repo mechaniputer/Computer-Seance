@@ -2,6 +2,7 @@
 #include <fstream>
 #include "computer.hpp"
 #include "raquette.hpp"
+#include "lvdc.hpp"
 
 #define BASEBYTES 2
 #define BASEWORDS 16
@@ -119,10 +120,32 @@ void test_raq_all(){
 
 }
 
+void test_lvdc(){
+	std::cout << "Testing LVDC\n";
+
+	// Create computer
+	int verb = 0; // verbosity
+	int brk = 65; // breakpoint (too high, never happens)
+	int fast = 1; // Go fast
+	char *fname = nullptr; // File loading not supported yet
+	LVDC lvdc(verb, brk, fast, fname);
+
+	// Show and run computer
+	lvdc.show_regs();
+	while (!lvdc.step()) {
+		lvdc.show_regs();
+	}
+	lvdc.show_regs();
+
+	return;
+}
+
+
 int main() {
 //	test_base_computer();
 	test_raq_romfile(); // Loads a 12K ROM file into high mem and runs it
 //	test_raq_all(); // Loads a ~13k functional test ROM file to 0x0400 and runs it
+//	test_lvdc();
 
 	return 0;
 }

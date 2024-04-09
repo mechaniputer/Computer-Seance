@@ -1,5 +1,5 @@
 EXEC = testcomp
-SOURCES = test_computer.cpp computer.cpp raquette.cpp
+SOURCES = test_computer.cpp computer.cpp raquette.cpp lvdc.cpp
 
 all:
 	g++ -g -Wall -o $(EXEC) $(SOURCES) -lncurses
