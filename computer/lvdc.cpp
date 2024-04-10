@@ -35,7 +35,7 @@ Software:
  For now it includes a setup_test() method which loads a hardcoded test program.
  An assembler would be nice.
  In the future maybe I'll write a FORTH for it, although memory being split
- into 128 banks of 256 bytes, the lack of a hardware stack, and the lack of
+ into 128 banks of 256 words, the lack of a hardware stack, and the lack of
  addressing modes will make this tricky. Self-modifying code seems necessary.
 */
 
