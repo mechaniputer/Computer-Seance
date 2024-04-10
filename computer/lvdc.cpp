@@ -5,10 +5,43 @@
 #include "computer.hpp"
 #include "lvdc.hpp"
 
+// An emulator inspired by a historic computer that piloted rockets
+// Due to missing information, a lot of guesswork is present.
+// Don't fly a rocket with this code.
+
+/*
+Instructions not yet implemented: MPY, MPH, DIV, EXM, PIO
+
+Other missing features:
+	HOP save
+	P-Q register
+	Duplex mode
+	Highly accurate performance using timers
+	Program loading from file (should try to match format of yaOBC)
+	Interrupts
+
+Missing information:
+	Instruction counter overflow (currently wraps around)
+	Arithmetic overflow (currently wraps around)
+	Behavior with concurrent MPY and/or DIV (neither are currently implemented at all)
+	Behavior under duplex mode with mismatched but paired modules
+
+	I assumed that it starts by using address 0 in sector 0, module 0 as a HOP constant.
+	Page 2-105, item 2-249 in the LVDC manual supports this behavior.
+	However, other sources seem to say that execution of code simply begins there.
+	I should look into that and change this accordingly.
+
+Software:
+ For now it includes a setup_test() method which loads a hardcoded test program.
+ An assembler would be nice.
+ In the future maybe I'll write a FORTH for it, although memory being split
+ into 128 banks of 256 bytes, the lack of a hardware stack, and the lack of
+ addressing modes will make this tricky. Self-modifying code seems necessary.
+*/
+
 // Addresses have 8 bits for within a sector and the 9th bit selects either the address is used for residual memory
 // A9 is the least significant bit of the address (adjacent to the opcode) but A8 is the most significant bit (8, 7, 6, ..., 1, 9, opcode)
 
-// TODO params
 LVDC::LVDC(int verbosity, int brkpt, int run_fast, char *fname){
 			cycles = 0;
 			verb = verbosity;
@@ -85,89 +118,89 @@ void LVDC::dstore(uint16_t addr, uint32_t src){
 	}
 }
 
-		// Stores a word to any address in any sector in any module
-		// Should not be used in execution
-		// Takes an 8 bit address, does not use residual bit
-		void LVDC::dstore_absolute(uint16_t storeaddr, uint16_t storesector, uint16_t storemodule, uint32_t src){
-			assert(!(storeaddr>>8));
-			assert(!(storesector>>4));
-			assert(!(storemodule>>3));
-			assert(storemodule < NUM_MODULES); // Important to check, because NUM_MODULES is configurable
-			assert(!(src>>26));
-			mem[0][(storemodule*MODULE)+(storesector*SECTOR)+(storeaddr)] = (src & 0X1FFF);
-			mem[1][(storemodule*MODULE)+(storesector*SECTOR)+(storeaddr)] = (src>>13);
-		}
+// Stores a word to any address in any sector in any module
+// Should not be used in execution
+// Takes an 8 bit address, does not use residual bit
+void LVDC::dstore_absolute(uint16_t storeaddr, uint16_t storesector, uint16_t storemodule, uint32_t src){
+	assert(!(storeaddr>>8));
+	assert(!(storesector>>4));
+	assert(!(storemodule>>3));
+	assert(storemodule < NUM_MODULES); // Important to check, because NUM_MODULES is configurable
+	assert(!(src>>26));
+	mem[0][(storemodule*MODULE)+(storesector*SECTOR)+(storeaddr)] = (src & 0X1FFF);
+	mem[1][(storemodule*MODULE)+(storesector*SECTOR)+(storeaddr)] = (src>>13);
+}
 
-		// Loads a 13 bit instruction into a register argument
-		void LVDC::iload(uint16_t *dest){
-			// Residual A9 is not available for addressing instructions.
-			*dest = mem[syllable][(imodule*MODULE)+(isector*SECTOR)+ic];
-		}
+// Loads a 13 bit instruction into a register argument
+void LVDC::iload(uint16_t *dest){
+	// Residual A9 is not available for addressing instructions.
+	*dest = mem[syllable][(imodule*MODULE)+(isector*SECTOR)+ic];
+}
 
-		// Loads a full 26 bit word into a register argument
-		// addr is an instruction syllable right-shifted by 4
-		// dest is a pointer to an external 32 bit register
-		void LVDC::dload(uint16_t addr, uint32_t *dest){
-			uint32_t s0, s1;
-			if(addr & 1){	// Residual memory
-				s0 = mem[0][(dmodule*MODULE)+(0XF*SECTOR)+(addr>>1)];
-				s1 = mem[1][(dmodule*MODULE)+(0XF*SECTOR)+(addr>>1)];
-			}else{
-				s0 = mem[0][(dmodule*MODULE)+(dsector*SECTOR)+(addr>>1)];
-				s1 = mem[1][(dmodule*MODULE)+(dsector*SECTOR)+(addr>>1)];
-			}
-			s1 = s1<<13; // Syllable 1 is the more significant half
-			*dest = ((s0 + s1) & 0X3FFFFFF);
-		}
+// Loads a full 26 bit word into a register argument
+// addr is an instruction syllable right-shifted by 4
+// dest is a pointer to an external 32 bit register
+void LVDC::dload(uint16_t addr, uint32_t *dest){
+	uint32_t s0, s1;
+	if(addr & 1){	// Residual memory
+		s0 = mem[0][(dmodule*MODULE)+(0XF*SECTOR)+(addr>>1)];
+		s1 = mem[1][(dmodule*MODULE)+(0XF*SECTOR)+(addr>>1)];
+	}else{
+		s0 = mem[0][(dmodule*MODULE)+(dsector*SECTOR)+(addr>>1)];
+		s1 = mem[1][(dmodule*MODULE)+(dsector*SECTOR)+(addr>>1)];
+	}
+	s1 = s1<<13; // Syllable 1 is the more significant half
+	*dest = ((s0 + s1) & 0X3FFFFFF);
+}
 
-		// Sets the syllable to either 0 or 1 based on argument
-		void LVDC::set_syllable(uint16_t sylnew){
-			assert(0==(sylnew>>1)); // Must be either 0 or 1
-			syllable = sylnew;
-		}
+// Sets the syllable to either 0 or 1 based on argument
+void LVDC::set_syllable(uint16_t sylnew){
+	assert(0==(sylnew>>1)); // Must be either 0 or 1
+	syllable = sylnew;
+}
 
-		// Takes 8 bit value, no A9 residual bit
-		void LVDC::set_ic(uint16_t icnew){
-			assert(0==(icnew>>8)); // Catch invalid input
-			ic = icnew;
-		}
+// Takes 8 bit value, no A9 residual bit
+void LVDC::set_ic(uint16_t icnew){
+	assert(0==(icnew>>8)); // Catch invalid input
+	ic = icnew;
+}
 
-		void LVDC::set_imodule(uint16_t imodnew){
-			assert(0==(imodnew>>3));
-			assert(imodnew < NUM_MODULES); // Important to check, because NUM_MODULES is configurable
-			imodule = imodnew;
-		}
+void LVDC::set_imodule(uint16_t imodnew){
+	assert(0==(imodnew>>3));
+	assert(imodnew < NUM_MODULES); // Important to check, because NUM_MODULES is configurable
+	imodule = imodnew;
+}
 
-		void LVDC::set_dmodule(uint16_t dmodnew){
-			assert(0==(dmodnew>>3));
-			assert(dmodnew < NUM_MODULES); // Important to check, because NUM_MODULES is configurable
-			dmodule = dmodnew;
-		}
+void LVDC::set_dmodule(uint16_t dmodnew){
+	assert(0==(dmodnew>>3));
+	assert(dmodnew < NUM_MODULES); // Important to check, because NUM_MODULES is configurable
+	dmodule = dmodnew;
+}
 
-		// TODO when duplex support is added, should probably add a check for even number of modules being present
-		void LVDC::set_isimdup(uint16_t simdupmode){
-			assert(0==(simdupmode>>1)); // Must be either 0 or 1
-			isimdup = simdupmode;
-			if(0 != isimdup){
-				std::cout << "ERROR: Duplex operation currently unsupported\n";
-				assert(0);
-			}
-		}
+// TODO when duplex support is added, should probably add a check for even number of modules being present
+void LVDC::set_isimdup(uint16_t simdupmode){
+	assert(0==(simdupmode>>1)); // Must be either 0 or 1
+	isimdup = simdupmode;
+	if(0 != isimdup){
+		std::cout << "ERROR: Duplex operation currently unsupported\n";
+		assert(0);
+	}
+}
 
-		// TODO when duplex support is added, should probably add a check for even number of modules being present
-		void LVDC::set_dsimdup(uint16_t simdupmode){
-			assert(0==(simdupmode>>1)); // Must be either 0 or 1
-			dsimdup = simdupmode;
-			if(0 != dsimdup){
-				std::cout << "ERROR: Duplex operation currently unsupported\n";
-				assert(0);
-			}
-		}
+// TODO when duplex support is added, should probably add a check for even number of modules being present
+void LVDC::set_dsimdup(uint16_t simdupmode){
+	assert(0==(simdupmode>>1)); // Must be either 0 or 1
+	dsimdup = simdupmode;
+	if(0 != dsimdup){
+		std::cout << "ERROR: Duplex operation currently unsupported\n";
+		assert(0);
+	}
+}
 
-		void LVDC::inc_ic(){
-			ic++; // TODO What should really happen when this overflows? I assume it wraps but for all I know it should catch on fire.
-			ic = (ic & 0XFF);
-		}
+void LVDC::inc_ic(){
+	ic++; // TODO What should really happen when this overflows? I assume it wraps but for all I know it should catch on fire.
+	ic = (ic & 0XFF);
+}
 
 
 

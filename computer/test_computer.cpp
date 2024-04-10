@@ -142,10 +142,21 @@ void test_lvdc(){
 
 
 int main() {
-//	test_base_computer();
+	#ifdef USE_NOCOMPUTER
+	test_base_computer();
+	#endif
+
+	#ifdef USE_RAQ
 	test_raq_romfile(); // Loads a 12K ROM file into high mem and runs it
-//	test_raq_all(); // Loads a ~13k functional test ROM file to 0x0400 and runs it
-//	test_lvdc();
+	#endif
+
+	#ifdef USE_RAQTEST
+	test_raq_all(); // Loads a ~13k functional test ROM file to 0x0400 and runs it
+	#endif
+
+	#ifdef USE_LVDC
+	test_lvdc();
+	#endif
 
 	return 0;
 }
