@@ -163,9 +163,9 @@ Raquette::Raquette(uint8_t *init_contents, int len_contents) {
 			memory[i] = init_contents[i];
 		}
 	}else{
-//		std::ifstream infile("../computer/A2ROM.BIN", std::ios::binary | std::ios::in);
-//		std::ifstream infile("../computer/apple.rom", std::ios::binary | std::ios::in);
 		std::ifstream infile("../software/raquette/rom/raq_rom.bin", std::ios::binary | std::ios::in);
+//		std::ifstream infile("../software/raquette/rom/A2ROM.BIN", std::ios::binary | std::ios::in);
+//		std::ifstream infile("../software/raquette/rom/APPLE2.ROM", std::ios::binary | std::ios::in);
 		if(!infile){
 			std::cout << "Cannot open ROM file\n";
 			exit(0);
@@ -544,6 +544,7 @@ void Raquette::softSwitchesHelper(int eff_addr){
 	// For now we assume there is one controller in slot 6 only: C0Ex
 	// But looking forward, we want a general way to handle other expansion boards in arbitrary slots.
 	}else if(eff_addr == 0xc0e0){ // Stepper Phase 0 off
+std::cout<<".\n";
 		disk.stepper_p0 = false;
 		disk.stepper();
 	}else if(eff_addr == 0xc0e1){ // Stepper Phase 0 on

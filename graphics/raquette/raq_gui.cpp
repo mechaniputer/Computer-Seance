@@ -1,7 +1,7 @@
 #include <iostream>
 #include <fstream>
-#include "../computer/computer.hpp"
-#include "../computer/raquette.hpp"
+#include "../../computer/computer.hpp"
+#include "../../computer/raquette.hpp"
 #include <SDL2/SDL.h>
 #include <unistd.h>
 
