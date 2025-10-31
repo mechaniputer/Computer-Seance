@@ -6,6 +6,8 @@
 #include <unistd.h>
 
 #define WINDOW_WIDTH 600
+#define TIME_STEP (1)
+#define CPU_FACTOR (50)
 
 
 void bigPixel(SDL_Renderer *renderer, int x, int y, int size){
@@ -72,12 +74,10 @@ int main(void) {
 	SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
 	SDL_RenderClear(renderer);
 
-#define TIME_STEP (1)
-#define CPU_FACTOR (50)
-// TODO Use just one callback func but set data in params
-SDL_TimerID step_timer_id = SDL_AddTimer(TIME_STEP*CPU_FACTOR, steps_callbackfunc, 0);
-SDL_TimerID kbd_timer_id = SDL_AddTimer(TIME_STEP, kbd_callbackfunc, 0);
-SDL_TimerID display_timer_id = SDL_AddTimer(TIME_STEP*51, display_callbackfunc, 0);
+	// TODO Use just one callback func but set data in params
+	SDL_TimerID step_timer_id = SDL_AddTimer(TIME_STEP*CPU_FACTOR, steps_callbackfunc, 0);
+	SDL_TimerID kbd_timer_id = SDL_AddTimer(TIME_STEP, kbd_callbackfunc, 0);
+	SDL_TimerID display_timer_id = SDL_AddTimer(TIME_STEP*51, display_callbackfunc, 0);
 
 	// TODO Key repeat and rollover is not quite accurate
 	// Pressing a second key with one key held should type the second key once and then stop
