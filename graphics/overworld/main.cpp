@@ -56,14 +56,20 @@ int main(void) {
 	SDL_FreeSurface(tile_surf);
 
 	SDL_Surface *person_surf = SDL_LoadBMP("sprites/person.bmp");
+	Uint32 person_key = SDL_MapRGB(person_surf->format, 255, 255, 255);
+	SDL_SetColorKey(person_surf, SDL_TRUE, person_key);
 	SDL_Texture *person_tex = SDL_CreateTextureFromSurface(renderer, person_surf);
 	SDL_FreeSurface(person_surf);
 
 	SDL_Surface *table_surf = SDL_LoadBMP("sprites/table.bmp");
+	Uint32 table_key = SDL_MapRGB(table_surf->format, 255, 255, 255);
+	SDL_SetColorKey(table_surf, SDL_TRUE, table_key);
 	SDL_Texture *table_tex = SDL_CreateTextureFromSurface(renderer, table_surf);
 	SDL_FreeSurface(table_surf);
 
 	SDL_Surface *term_surf = SDL_LoadBMP("sprites/terminal.bmp");
+	Uint32 term_key = SDL_MapRGB(term_surf->format, 255, 255, 255);
+	SDL_SetColorKey(term_surf, SDL_TRUE, term_key);
 	SDL_Texture *term_tex = SDL_CreateTextureFromSurface(renderer, term_surf);
 	SDL_FreeSurface(term_surf);
 
