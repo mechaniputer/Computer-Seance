@@ -59,6 +59,14 @@ int main(void) {
 	SDL_Texture *person_tex = SDL_CreateTextureFromSurface(renderer, person_surf);
 	SDL_FreeSurface(person_surf);
 
+	SDL_Surface *table_surf = SDL_LoadBMP("sprites/table.bmp");
+	SDL_Texture *table_tex = SDL_CreateTextureFromSurface(renderer, table_surf);
+	SDL_FreeSurface(table_surf);
+
+	SDL_Surface *term_surf = SDL_LoadBMP("sprites/terminal.bmp");
+	SDL_Texture *term_tex = SDL_CreateTextureFromSurface(renderer, term_surf);
+	SDL_FreeSurface(term_surf);
+
 	// --- PLAYER AND CAMERA STATE ---
 	int player_tile_x = 0;
 	int player_tile_y = MAP_HEIGHT - 1; // lower-left corner
@@ -72,6 +80,8 @@ int main(void) {
 			break;
 
 		// --- Handle Keyboard ---
+		// TODO Detect obstacles
+		//      Log last movement direction for interaction direction and sprite selection
 		} else if (event.type == SDL_KEYDOWN) {
 			switch (event.key.keysym.sym) {
 				case SDLK_LEFT:  if (player_tile_x > 0) player_tile_x--; break;
@@ -109,6 +119,23 @@ int main(void) {
 						SDL_RenderCopy(renderer, tile_tex, NULL, &dst);
 				}
 			}
+
+			// Draw table
+			SDL_Rect table_rect;
+			table_rect.x = 2 * TILE_SIZE - cam_x;
+			table_rect.y = 2 * TILE_SIZE - cam_y;
+			table_rect.w = 2 * TILE_SIZE;
+			table_rect.h = TILE_SIZE;
+			SDL_RenderCopy(renderer, table_tex, NULL, &table_rect);
+
+			// Draw terminal
+			SDL_Rect term_rect;
+			term_rect.x = 2 * TILE_SIZE - cam_x;
+			term_rect.y = 2 * TILE_SIZE - cam_y - 5;
+			term_rect.w = TILE_SIZE;
+			term_rect.h = TILE_SIZE;
+			SDL_RenderCopy(renderer, term_tex, NULL, &term_rect);
+
 
 			// Draw player (always centered)
 			SDL_Rect player_rect = { center_x - 8, center_y - 32, 16, 32 };
