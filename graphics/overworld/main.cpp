@@ -6,7 +6,7 @@
 #define WINDOW_WIDTH 600
 #define TIME_STEP (1)
 
-#define TILE_SIZE 16
+#define TILE_SIZE 64
 #define MAP_WIDTH 8
 #define MAP_HEIGHT 8
 
@@ -88,6 +88,7 @@ int main(void) {
 		// --- Handle Keyboard ---
 		// TODO Detect obstacles
 		//      Log last movement direction for interaction direction and sprite selection
+		//      Add interaction buttons, menu
 		} else if (event.type == SDL_KEYDOWN) {
 			switch (event.key.keysym.sym) {
 				case SDLK_LEFT:  if (player_tile_x > 0) player_tile_x--; break;
@@ -144,7 +145,7 @@ int main(void) {
 
 
 			// Draw player (always centered)
-			SDL_Rect player_rect = { center_x - 8, center_y - 32, 16, 32 };
+			SDL_Rect player_rect = { center_x - (TILE_SIZE/2), center_y - (TILE_SIZE), TILE_SIZE, 2* TILE_SIZE };
 			SDL_RenderCopy(renderer, person_tex, NULL, &player_rect);
 
 			SDL_RenderPresent(renderer);
