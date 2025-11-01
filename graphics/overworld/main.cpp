@@ -138,14 +138,14 @@ int main(void) {
 			// Draw terminal
 			SDL_Rect term_rect;
 			term_rect.x = 2 * TILE_SIZE - cam_x;
-			term_rect.y = 2 * TILE_SIZE - cam_y - 5;
+			term_rect.y = 2 * TILE_SIZE - cam_y - (TILE_SIZE>>2);
 			term_rect.w = TILE_SIZE;
 			term_rect.h = TILE_SIZE;
 			SDL_RenderCopy(renderer, term_tex, NULL, &term_rect);
 
 
 			// Draw player (always centered)
-			SDL_Rect player_rect = { center_x - (TILE_SIZE/2), center_y - (TILE_SIZE), TILE_SIZE, 2* TILE_SIZE };
+			SDL_Rect player_rect = { center_x - (TILE_SIZE/2), center_y - (TILE_SIZE + (TILE_SIZE>>2)), TILE_SIZE, 2* TILE_SIZE };
 			SDL_RenderCopy(renderer, person_tex, NULL, &player_rect);
 
 			SDL_RenderPresent(renderer);
